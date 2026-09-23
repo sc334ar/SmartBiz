@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Invoice - SmartBiz</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+
+        .invoice {
+            background: white;
+            max-width: 750px;
+            margin: 30px auto;
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .invoice-header {
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 20px;
+        }
+
+        .invoice-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 25px 0;
+        }
+
+        .invoice table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .invoice th,
+        .invoice td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .invoice-total {
+            text-align: right;
+            font-size: 22px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        .print-button {
+            margin-top: 20px;
+        }
+
+        @media print {
+
+            .print-button,
+            .back-button {
+                display: none;
+            }
+
+            body {
+                background: white;
+            }
+
+            .invoice {
+                box-shadow: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="invoice">
+
+    <div class="invoice-header">
+
+        <h1>SMARTBIZ</h1>
+
+        <h2>INVOICE</h2>
+
+        <p>
+            <strong>{{ invoice_number }}</strong>
+        </p>
+
+    </div>
+
+
+    <div class="invoice-info">
+
+        <div>
+
+            <strong>Customer:</strong>
+
+            <p>{{ customer }}</p>
+
+        </div>
+
+        <div>
+
+            <strong>Invoice Date:</strong>
+
+            <p>{{ date }}</p>
+
+            <strong>Due Date:</strong>
+
+            <p>{{ due_date }}</p>
+
+        </div>
+
+    </div>
+
+
+    <table>
+
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Total</th>
+        </tr>
+
+        {% for item, quantity, price in items %}
+
+        <tr>
+
+            <td>{{ item }}</td>
+
+            <td>{{ quantity }}</td>
+
+            <td>
+                KSh {{ "%.2f"|format(price|float) }}
+            </td>
+
+            <td>
+                KSh {{ "%.2f"|format(
+                    quantity|int * price|float
+                ) }}
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+
+    <div class="invoice-total">
+
+        TOTAL:
+
+        KSh {{ "%.2f"|format(total) }}
+
+    </div>
+
+
+    <button
+        class="print-button"
+        onclick="window.print()">
+
+        🖨️ Print Invoice
+
+    </button>
+
+
+    <p class="back-button">
+
+        <a href="{{ url_for('dashboard') }}">
+            ← Dashboard
+        </a>
+
+    </p>
+
+</div>
+
+</body>
+
+  </html>
