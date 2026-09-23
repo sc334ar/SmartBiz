@@ -177,7 +177,28 @@ def create_database():
     """)
     conn.commit()
     conn.close()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS invoices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            invoice_number TEXT NOT NULL,
+            customer TEXT NOT NULL,
+            date TEXT NOT NULL,
+            due_date TEXT NOT NULL,
+            status TEXT NOT NULL
+        )
+    """)
 
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS invoice_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            invoice_id INTEGER NOT NULL,
+            item TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            price REAL NOT NULL,
+            total REAL NOT NULL
+        )
+    """)
 
 @app.route("/")
 def home():
@@ -477,7 +498,114 @@ def logout():
     session.clear()
 
     return redirect(url_for("login"))
+@app.route("/invoice", methods=["GET", "POST"])
+def invoice():
 
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+
+        customer = request.form["customer"]
+        due_date = request.form["due_date"]
+
+        items = request.form.getlist("item[]")
+        quantities = request.form.getlist("quantity[]")
+        prices = request.form.getlist("price[]")
+
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        conn = get_db()
+
+        last_invoice = conn.execute(
+            """
+            SELECT id
+            FROM invoices
+            ORDER BY id DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+        if last_invoice:
+            invoice_number = f"INV-{last_invoice['id'] + 1:05d}"
+        else:
+            invoice_number = "INV-00001"
+
+        cursor = conn.execute(
+            """
+            INSERT INTO invoices
+            (
+                user_id,
+                invoice_number,
+                customer,
+                date,
+                due_date,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                invoice_number,
+                customer,
+                date,
+                due_date,
+                "Unpaid"
+            )
+        )
+
+        invoice_id = cursor.lastrowid
+
+        total_invoice = 0
+
+        for item, quantity, price in zip(
+            items,
+            quantities,
+            prices
+        ):
+
+            quantity = int(quantity)
+            price = float(price)
+
+            item_total = quantity * price
+
+            total_invoice += item_total
+
+            conn.execute(
+                """
+                INSERT INTO invoice_items
+                (
+                    invoice_id,
+                    item,
+                    quantity,
+                    price,
+                    total
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    invoice_id,
+                    item,
+                    quantity,
+                    price,
+                    item_total
+                )
+            )
+
+        conn.commit()
+        conn.close()
+
+        return render_template(
+            "invoice_result.html",
+            invoice_number=invoice_number,
+            customer=customer,
+            date=date,
+            due_date=due_date,
+            items=zip(items, quantities, prices),
+            total=total_invoice
+        )
+
+    return render_template("invoice.html")
 
 if __name__ == "__main__":
     create_database()
