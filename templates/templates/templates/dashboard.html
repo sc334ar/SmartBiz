@@ -35,7 +35,17 @@
             <h3>📊 Profit</h3>
             <p>KSh {{ "%.2f"|format(profit) }}</p>
         </div>
+<div class="card">
 
+    <h2>🧾 Receipts</h2>
+
+    <p>Create a professional customer receipt.</p>
+
+    <a href="{{ url_for('receipt') }}">
+        <button>Create Receipt</button>
+    </a>
+
+</div>
     </section>
 
     <section>
