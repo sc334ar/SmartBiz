@@ -1,4 +1,70 @@
 if __name__ == "__main__":
+    @app.route("/cheques", methods=["GET", "POST"])
+def cheques():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        cheque_number = request.form["cheque_number"]
+        bank = request.form["bank"]
+        payee = request.form["payee"]
+        amount = float(request.form["amount"])
+        issue_date = request.form["issue_date"]
+        status = request.form["status"]
+        notes = request.form["notes"]
+
+        conn = get_db()
+
+        conn.execute(
+            """
+            INSERT INTO cheques
+            (
+                user_id,
+                cheque_number,
+                bank,
+                payee,
+                amount,
+                issue_date,
+                status,
+                notes
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                cheque_number,
+                bank,
+                payee,
+                amount,
+                issue_date,
+                status,
+                notes
+            )
+        )
+
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("cheques"))
+
+    conn = get_db()
+
+    cheque_list = conn.execute(
+        """
+        SELECT *
+        FROM cheques
+        WHERE user_id = ?
+        ORDER BY id DESC
+        """,
+        (session["user_id"],)
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "cheques.html",
+        cheques=cheque_list
+    )
     @app.route("/expense", methods=["GET", "POST"])
 def expense():
 
@@ -37,7 +103,19 @@ def expense():
                 date
             )
         )
-
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS cheques (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            cheque_number TEXT NOT NULL,
+            bank TEXT NOT NULL,
+            payee TEXT NOT NULL,
+            amount REAL NOT NULL,
+            issue_date TEXT NOT NULL,
+            status TEXT NOT NULL,
+            notes TEXT
+        )
+    """)
         conn.commit()
         conn.close()
 
