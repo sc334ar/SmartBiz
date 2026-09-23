@@ -1,4 +1,7 @@
-if __name__ == "__main__":
+from flask import Flask, render_template, request, redirect, url_for, session
+from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
+from datetime import datetime
   @app.route("/receipt", methods=["GET", "POST"])
 def receipt():
 
