@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Financial Reports - SmartBiz</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="dashboard">
+
+    <header>
+
+        <h1>📊 Financial Reports</h1>
+
+        <p>SmartBiz business financial summary</p>
+
+        <a href="{{ url_for('dashboard') }}">
+            ← Back to Dashboard
+        </a>
+
+    </header>
+
+
+    <!-- Financial Summary -->
+
+    <section class="cards">
+
+        <div class="card">
+
+            <h3>💰 Total Sales</h3>
+
+            <p>
+                KSh {{ "%.2f"|format(sales) }}
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>💸 Total Expenses</h3>
+
+            <p>
+                KSh {{ "%.2f"|format(expenses) }}
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>📈 Profit</h3>
+
+            <p>
+                KSh {{ "%.2f"|format(profit) }}
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- Business Activity -->
+
+    <section class="cards">
+
+        <div class="card">
+
+            <h3>🧾 Receipts</h3>
+
+            <p>
+                {{ receipt_count }}
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>📄 Invoices</h3>
+
+            <p>
+                {{ invoice_count }}
+            </p>
+
+        </div>
+
+
+        <div class="card">
+
+            <h3>🏦 Cheques</h3>
+
+            <p>
+                KSh {{ "%.2f"|format(cheque_total) }}
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- Profit Explanation -->
+
+    <div class="card">
+
+        <h2>📋 Financial Summary</h2>
+
+        <p>
+            Total Sales:
+            <strong>
+                KSh {{ "%.2f"|format(sales) }}
+            </strong>
+        </p>
+
+        <p>
+            Total Expenses:
+            <strong>
+                KSh {{ "%.2f"|format(expenses) }}
+            </strong>
+        </p>
+
+        <p>
+            Net Profit:
+            <strong>
+                KSh {{ "%.2f"|format(profit) }}
+            </strong>
+        </p>
+
+    </div>
+
+
+    <br>
+
+
+    <a href="{{ url_for('dashboard') }}">
+
+        <button>
+            ← Return to Dashboard
+        </button>
+
+    </a>
+
+</div>
+
+</body>
+
+  </html>
