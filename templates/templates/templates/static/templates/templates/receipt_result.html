@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Receipt - SmartBiz</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+
+        .receipt {
+            background: white;
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .receipt-header {
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 15px;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .total {
+            font-size: 22px;
+            font-weight: bold;
+            border-top: 2px solid #ddd;
+            margin-top: 15px;
+            padding-top: 15px;
+        }
+
+        .print-button {
+            margin-top: 20px;
+        }
+
+        @media print {
+
+            .print-button,
+            .back-button {
+                display: none;
+            }
+
+            body {
+                background: white;
+            }
+
+            .receipt {
+                box-shadow: none;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="receipt">
+
+    <div class="receipt-header">
+
+        <h1>SMARTBIZ</h1>
+
+        <p>Business Receipt</p>
+
+    </div>
+
+    <p><strong>Customer:</strong> {{ customer }}</p>
+
+    <div class="receipt-row">
+        <span>Item</span>
+        <span>{{ item }}</span>
+    </div>
+
+    <div class="receipt-row">
+        <span>Quantity</span>
+        <span>{{ quantity }}</span>
+    </div>
+
+    <div class="receipt-row">
+        <span>Price</span>
+        <span>KSh {{ "%.2f"|format(price) }}</span>
+    </div>
+
+    <div class="receipt-row total">
+        <span>TOTAL</span>
+        <span>KSh {{ "%.2f"|format(total) }}</span>
+    </div>
+
+    <p>
+        <strong>Payment:</strong>
+        {{ payment_method }}
+    </p>
+
+    <button class="print-button"
+            onclick="window.print()">
+        🖨️ Print Receipt
+    </button>
+
+    <p class="back-button">
+        <a href="{{ url_for('dashboard') }}">
+            ← Dashboard
+        </a>
+    </p>
+
+</div>
+
+</body>
+
+</html>
