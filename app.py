@@ -606,7 +606,90 @@ def invoice():
         )
 
     return render_template("invoice.html")
+@app.route("/reports")
+def reports():
 
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+
+    # Total sales
+    sales_result = conn.execute(
+        """
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'income'
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    sales = sales_result[0]
+
+    # Total expenses
+    expenses_result = conn.execute(
+        """
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'expense'
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    expenses = expenses_result[0]
+
+    # Calculate profit
+    profit = sales - expenses
+
+    # Number of receipts
+    receipt_result = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM receipts
+        WHERE user_id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    receipt_count = receipt_result[0]
+
+    # Number of invoices
+    invoice_result = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM invoices
+        WHERE user_id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    invoice_count = invoice_result[0]
+
+    # Total cheque value
+    cheque_result = conn.execute(
+        """
+        SELECT COALESCE(SUM(amount), 0)
+        FROM cheques
+        WHERE user_id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    cheque_total = cheque_result[0]
+
+    conn.close()
+
+    return render_template(
+        "reports.html",
+        sales=sales,
+        expenses=expenses,
+        profit=profit,
+        receipt_count=receipt_count,
+        invoice_count=invoice_count,
+        cheque_total=cheque_total
+)
 if __name__ == "__main__":
     create_database()
     app.run(debug=True)
