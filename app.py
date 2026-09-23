@@ -217,6 +217,113 @@ def register():
     return render_template("register.html")
 
 
+@app.route("/receipt", methods=["GET", "POST"])
+def receipt():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+
+        customer = request.form["customer"]
+        item = request.form["item"]
+        quantity = int(request.form["quantity"])
+        price = float(request.form["price"])
+        payment_method = request.form["payment_method"]
+
+        # Calculate total
+        total = quantity * price
+
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        conn = get_db()
+
+        # Generate receipt number
+        last_receipt = conn.execute(
+            """
+            SELECT id
+            FROM receipts
+            ORDER BY id DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+        if last_receipt:
+            receipt_number = f"REC-{last_receipt['id'] + 1:05d}"
+        else:
+            receipt_number = "REC-00001"
+
+        # Save receipt
+        cursor = conn.execute(
+            """
+            INSERT INTO receipts
+            (
+                user_id,
+                receipt_number,
+                customer,
+                item,
+                quantity,
+                price,
+                total,
+                payment_method,
+                date
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                receipt_number,
+                customer,
+                item,
+                quantity,
+                price,
+                total,
+                payment_method,
+                date
+            )
+        )
+
+        receipt_id = cursor.lastrowid
+
+        # Automatically record the sale
+        conn.execute(
+            """
+            INSERT INTO transactions
+            (
+                user_id,
+                transaction_type,
+                description,
+                amount,
+                payment_method,
+                date
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                "income",
+                f"Sale - {item} ({receipt_number})",
+                total,
+                payment_method,
+                date
+            )
+        )
+
+        conn.commit()
+        conn.close()
+
+        return render_template(
+            "receipt_result.html",
+            receipt_number=receipt_number,
+            customer=customer,
+            item=item,
+            quantity=quantity,
+            price=price,
+            total=total,
+            payment_method=payment_method,
+            date=date
+        )
+
+    return render_template("receipt.html")
 route@app.route("/receipt", methods=["GET", "POST"])
 def receipt():
 
