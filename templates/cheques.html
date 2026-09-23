@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cheque Manager - SmartBiz</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="dashboard">
+
+    <header>
+        <h1>🏦 Cheque Manager</h1>
+        <p>Record and track business cheques</p>
+
+        <a href="{{ url_for('dashboard') }}">
+            ← Back to Dashboard
+        </a>
+    </header>
+
+
+    <div class="card">
+
+        <h2>➕ Add Cheque</h2>
+
+        <form method="POST">
+
+            <input
+                type="text"
+                name="cheque_number"
+                placeholder="Cheque Number"
+                required
+            >
+
+            <input
+                type="text"
+                name="bank"
+                placeholder="Bank Name"
+                required
+            >
+
+            <input
+                type="text"
+                name="payee"
+                placeholder="Payee / Recipient"
+                required
+            >
+
+            <input
+                type="number"
+                name="amount"
+                placeholder="Amount (KSh)"
+                min="0.01"
+                step="0.01"
+                required
+            >
+
+            <label>Issue Date</label>
+
+            <input
+                type="date"
+                name="issue_date"
+                required
+            >
+
+            <select name="status" required>
+
+                <option value="">Cheque Status</option>
+
+                <option value="Pending">
+                    Pending
+                </option>
+
+                <option value="Deposited">
+                    Deposited
+                </option>
+
+                <option value="Cleared">
+                    Cleared
+                </option>
+
+                <option value="Cancelled">
+                    Cancelled
+                </option>
+
+            </select>
+
+            <input
+                type="text"
+                name="notes"
+                placeholder="Notes (optional)"
+            >
+
+            <button type="submit">
+                Save Cheque
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>📋 Cheque Register</h2>
+
+        {% if cheques %}
+
+        <div style="overflow-x:auto;">
+
+            <table>
+
+                <tr>
+                    <th>Cheque No.</th>
+                    <th>Bank</th>
+                    <th>Payee</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+
+                {% for cheque in cheques %}
+
+                <tr>
+
+                    <td>
+                        {{ cheque["cheque_number"] }}
+                    </td>
+
+                    <td>
+                        {{ cheque["bank"] }}
+                    </td>
+
+                    <td>
+                        {{ cheque["payee"] }}
+                    </td>
+
+                    <td>
+                        KSh {{ "%.2f"|format(cheque["amount"]) }}
+                    </td>
+
+                    <td>
+                        {{ cheque["issue_date"] }}
+                    </td>
+
+                    <td>
+                        {{ cheque["status"] }}
+                    </td>
+
+                    <td>
+                        {{ cheque["notes"] or "-" }}
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <p>
+            No cheques recorded yet.
+        </p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
