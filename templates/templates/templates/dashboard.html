@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartBiz Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="dashboard">
+
+    <header>
+        <h1>SmartBiz Accountant</h1>
+
+        <p>Welcome, {{ name }}</p>
+
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </header>
+
+    <section class="cards">
+
+        <div class="card">
+            <h3>💰 Sales</h3>
+            <p>KSh {{ "%.2f"|format(sales) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>💸 Expenses</h3>
+            <p>KSh {{ "%.2f"|format(expenses) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>📊 Profit</h3>
+            <p>KSh {{ "%.2f"|format(profit) }}</p>
+        </div>
+
+    </section>
+
+    <section>
+
+        <h2>Transactions</h2>
+
+        {% if transactions %}
+
+        <table>
+
+            <tr>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Date</th>
+            </tr>
+
+            {% for transaction in transactions %}
+
+            <tr>
+                <td>{{ transaction["transaction_type"] }}</td>
+                <td>{{ transaction["description"] }}</td>
+                <td>KSh {{ "%.2f"|format(transaction["amount"]) }}</td>
+                <td>{{ transaction["payment_method"] }}</td>
+                <td>{{ transaction["date"] }}</td>
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        {% else %}
+
+        <p>No transactions recorded yet.</p>
+
+        {% endif %}
+
+    </section>
+
+</div>
+
+</body>
+</html>
