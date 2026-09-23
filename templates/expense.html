@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Add Expense - SmartBiz</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>💸 Add Expense</h1>
+
+    <p>Record a business expense</p>
+
+    <form method="POST">
+
+        <input
+            type="text"
+            name="description"
+            placeholder="Expense description"
+            required
+        >
+
+        <input
+            type="number"
+            name="amount"
+            placeholder="Amount (KSh)"
+            min="0.01"
+            step="0.01"
+            required
+        >
+
+        <select name="payment_method" required>
+
+            <option value="">Payment Method</option>
+
+            <option value="Cash">Cash</option>
+
+            <option value="M-Pesa">M-Pesa</option>
+
+            <option value="Bank">Bank</option>
+
+            <option value="Cheque">Cheque</option>
+
+        </select>
+
+        <button type="submit">
+            Save Expense
+        </button>
+
+    </form>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            ← Back to Dashboard
+        </a>
+    </p>
+
+</div>
+
+</body>
+
+              </html>
