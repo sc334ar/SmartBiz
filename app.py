@@ -1,3 +1,49 @@
+if __name__ == "__main__":
+    @app.route("/expense", methods=["GET", "POST"])
+def expense():
+
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+
+        description = request.form["description"]
+        amount = float(request.form["amount"])
+        payment_method = request.form["payment_method"]
+
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        conn = get_db()
+
+        conn.execute(
+            """
+            INSERT INTO transactions
+            (
+                user_id,
+                transaction_type,
+                description,
+                amount,
+                payment_method,
+                date
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                "expense",
+                description,
+                amount,
+                payment_method,
+                date
+            )
+        )
+
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for("dashboard"))
+
+    return render_template("expense.html")
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
