@@ -91,7 +91,6 @@ def create_database():
         )
     """)
 
-    # SMART INVENTORY
     conn.execute("""
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -228,28 +227,84 @@ def logout():
     return redirect(url_for("login"))
 
 
+# =========================
+# RECEIPTS + INVENTORY
+# =========================
+
 @app.route("/receipt", methods=["GET", "POST"])
 def receipt():
 
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    conn = get_db()
+
     if request.method == "POST":
 
         customer = request.form["customer"]
         item = request.form["item"]
         quantity = int(request.form["quantity"])
-        price = float(request.form["price"])
         payment_method = request.form["payment_method"]
 
+        # Find product belonging to logged-in user
+        product = conn.execute(
+            """
+            SELECT *
+            FROM products
+            WHERE user_id = ?
+            AND name = ?
+            """,
+            (session["user_id"], item)
+        ).fetchone()
+
+        if not product:
+            conn.close()
+
+            return """
+            <h2>⚠️ Product not found</h2>
+            <p>Please add this product to Smart Inventory first.</p>
+            <a href="/receipt">← Back to Receipt</a>
+            """
+
+        # Check stock
+        if quantity > product["stock"]:
+
+            available = product["stock"]
+
+            conn.close()
+
+            return f"""
+            <h2>⚠️ Not enough stock</h2>
+
+            <p>
+                Product: <strong>{item}</strong>
+            </p>
+
+            <p>
+                Available stock:
+                <strong>{available}</strong>
+            </p>
+
+            <p>
+                Requested:
+                <strong>{quantity}</strong>
+            </p>
+
+            <a href="/receipt">← Back to Receipt</a>
+            """
+
+        # Automatically use selling price
+        price = product["selling_price"]
+
         total = quantity * price
+
         date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        conn = get_db()
-
+        # Generate receipt number
         last_receipt = conn.execute(
             """
-            SELECT id FROM receipts
+            SELECT id
+            FROM receipts
             ORDER BY id DESC
             LIMIT 1
             """
@@ -260,6 +315,7 @@ def receipt():
         else:
             receipt_number = "REC-00001"
 
+        # Save receipt
         conn.execute(
             """
             INSERT INTO receipts
@@ -289,6 +345,7 @@ def receipt():
             )
         )
 
+        # Save income transaction
         conn.execute(
             """
             INSERT INTO transactions
@@ -312,6 +369,21 @@ def receipt():
             )
         )
 
+        # Automatically reduce stock
+        conn.execute(
+            """
+            UPDATE products
+            SET stock = stock - ?
+            WHERE id = ?
+            AND user_id = ?
+            """,
+            (
+                quantity,
+                product["id"],
+                session["user_id"]
+            )
+        )
+
         conn.commit()
         conn.close()
 
@@ -327,8 +399,28 @@ def receipt():
             date=date
         )
 
-    return render_template("receipt.html")
+    # Load products
+    products = conn.execute(
+        """
+        SELECT *
+        FROM products
+        WHERE user_id = ?
+        ORDER BY name ASC
+        """,
+        (session["user_id"],)
+    ).fetchall()
 
+    conn.close()
+
+    return render_template(
+        "receipt.html",
+        products=products
+    )
+
+
+# =========================
+# EXPENSES
+# =========================
 
 @app.route("/expense", methods=["GET", "POST"])
 def expense():
@@ -376,6 +468,10 @@ def expense():
 
     return render_template("expense.html")
 
+
+# =========================
+# CHEQUES
+# =========================
 
 @app.route("/cheques", methods=["GET", "POST"])
 def cheques():
@@ -446,6 +542,10 @@ def cheques():
     )
 
 
+# =========================
+# INVOICES
+# =========================
+
 @app.route("/invoice", methods=["GET", "POST"])
 def invoice():
 
@@ -470,7 +570,8 @@ def invoice():
 
             last_invoice = conn.execute(
                 """
-                SELECT id FROM invoices
+                SELECT id
+                FROM invoices
                 ORDER BY id DESC
                 LIMIT 1
                 """
@@ -578,7 +679,12 @@ def invoice():
             </head>
             <body style="font-family: Arial; padding: 30px;">
                 <h2>Invoice Error</h2>
-                <p><strong>The invoice could not be created.</strong></p>
+
+                <p>
+                    <strong>
+                        The invoice could not be created.
+                    </strong>
+                </p>
 
                 <p style="color:red;">
                     {str(e)}
@@ -586,14 +692,24 @@ def invoice():
 
                 <hr>
 
-                <p>Please send me exactly the error message shown above.</p>
+                <p>
+                    Please send me exactly the error message
+                    shown above.
+                </p>
 
-                <a href="/invoice">← Back to Invoice</a>
+                <a href="/invoice">
+                    ← Back to Invoice
+                </a>
             </body>
             </html>
             """
 
     return render_template("invoice.html")
+
+
+# =========================
+# INVENTORY
+# =========================
 
 @app.route("/inventory", methods=["GET", "POST"])
 def inventory():
@@ -606,13 +722,27 @@ def inventory():
     if request.method == "POST":
 
         name = request.form["name"]
-        sku = request.form["sku"]
-        buying_price = float(request.form["buying_price"])
-        selling_price = float(request.form["selling_price"])
-        stock = int(request.form["stock"])
-        low_stock_level = int(request.form["low_stock_level"])
+        sku = request.form.get("sku", "")
 
-        date_added = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        buying_price = float(
+            request.form["buying_price"]
+        )
+
+        selling_price = float(
+            request.form["selling_price"]
+        )
+
+        stock = int(
+            request.form["stock"]
+        )
+
+        low_stock_level = int(
+            request.form["low_stock_level"]
+        )
+
+        date_added = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         conn.execute(
             """
@@ -659,7 +789,12 @@ def inventory():
         "inventory.html",
         products=products
     )
-    
+
+
+# =========================
+# REPORTS
+# =========================
+
 @app.route("/reports")
 def reports():
 
@@ -723,25 +858,4 @@ def reports():
         WHERE user_id = ?
         """,
         (session["user_id"],)
-    ).fetchone()
-
-    cheque_total = cheque_result[0]
-
-    conn.close()
-
-    return render_template(
-        "reports.html",
-        sales=sales,
-        expenses=expenses,
-        profit=profit,
-        receipt_count=receipt_count,
-        invoice_count=invoice_count,
-        cheque_total=cheque_total
-    )
-
-
-create_database()
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    ).f
