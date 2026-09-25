@@ -4,7 +4,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
-
 app.secret_key = "change-this-secret-key"
 
 DATABASE = "smartbiz.db"
@@ -55,7 +54,8 @@ def create_database():
             price REAL NOT NULL,
             total REAL NOT NULL,
             payment_method TEXT NOT NULL,
-            date TEXT NOT NULL
+            date TEXT NOT NULL,
+            profit REAL NOT NULL DEFAULT 0
         )
     """)
 
@@ -108,6 +108,19 @@ def create_database():
             date_added TEXT NOT NULL
         )
     """)
+
+    # Upgrade older SmartBiz databases
+    columns = conn.execute(
+        "PRAGMA table_info(receipts)"
+    ).fetchall()
+
+    column_names = [column["name"] for column in columns]
+
+    if "profit" not in column_names:
+        conn.execute("""
+            ALTER TABLE receipts
+            ADD COLUMN profit REAL NOT NULL DEFAULT 0
+        """)
 
     conn.commit()
     conn.close()
@@ -229,7 +242,6 @@ def dashboard():
         return redirect(url_for("login"))
 
     conn = get_db()
-
     user_id = session["user_id"]
 
     sales = conn.execute(
@@ -255,6 +267,15 @@ def dashboard():
     receipts_count = conn.execute(
         """
         SELECT COUNT(*)
+        FROM receipts
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    ).fetchone()[0]
+
+    product_profit = conn.execute(
+        """
+        SELECT COALESCE(SUM(profit), 0)
         FROM receipts
         WHERE user_id = ?
         """,
@@ -292,6 +313,7 @@ def dashboard():
         sales=sales,
         expenses=expenses,
         profit=profit,
+        product_profit=product_profit,
         receipts_count=receipts_count,
         transactions=transactions,
         low_stock=low_stock
@@ -299,7 +321,7 @@ def dashboard():
 
 
 # =========================
-# RECEIPTS
+# RECEIPTS + INVENTORY PROFIT
 # =========================
 
 @app.route("/receipt", methods=["GET", "POST"])
@@ -316,6 +338,16 @@ def receipt():
         item = request.form["item"]
         quantity = int(request.form["quantity"])
         payment_method = request.form["payment_method"]
+
+        if quantity <= 0:
+
+            conn.close()
+
+            return """
+            <h2>Invalid quantity</h2>
+            <p>Quantity must be greater than zero.</p>
+            <a href="/receipt">← Back</a>
+            """
 
         product = conn.execute(
             """
@@ -334,16 +366,7 @@ def receipt():
             return """
             <h2>Product not found</h2>
             <p>Please add the product to inventory first.</p>
-            <a href="/receipt">Back</a>
-            """
-
-        if quantity <= 0:
-
-            conn.close()
-
-            return """
-            <h2>Invalid quantity</h2>
-            <a href="/receipt">Back</a>
+            <a href="/receipt">← Back</a>
             """
 
         if quantity > product["stock"]:
@@ -355,22 +378,34 @@ def receipt():
             return f"""
             <h2>⚠️ Not enough stock</h2>
 
-            <p>Product: <strong>{item}</strong></p>
-
-            <p>Available stock:
-            <strong>{available}</strong></p>
-
-            <p>Requested quantity:
-            <strong>{quantity}</strong></p>
+            <p>
+                Product:
+                <strong>{item}</strong>
+            </p>
 
             <p>
-                <a href="/receipt">← Back to Receipt</a>
+                Available stock:
+                <strong>{available}</strong>
             </p>
+
+            <p>
+                Requested quantity:
+                <strong>{quantity}</strong>
+            </p>
+
+            <a href="/receipt">
+                ← Back to Receipt
+            </a>
             """
 
-        price = product["selling_price"]
+        buying_price = product["buying_price"]
+        selling_price = product["selling_price"]
 
-        total = quantity * price
+        total = quantity * selling_price
+
+        profit_per_item = selling_price - buying_price
+
+        profit = profit_per_item * quantity
 
         date = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -407,9 +442,10 @@ def receipt():
                 price,
                 total,
                 payment_method,
-                date
+                date,
+                profit
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 session["user_id"],
@@ -417,10 +453,11 @@ def receipt():
                 customer,
                 item,
                 quantity,
-                price,
+                selling_price,
                 total,
                 payment_method,
-                date
+                date,
+                profit
             )
         )
 
@@ -470,10 +507,12 @@ def receipt():
             customer=customer,
             item=item,
             quantity=quantity,
-            price=price,
+            price=selling_price,
             total=total,
             payment_method=payment_method,
-            date=date
+            date=date,
+            buying_price=buying_price,
+            profit=profit
         )
 
     products = conn.execute(
@@ -742,13 +781,17 @@ def inventory():
 
         name = request.form["name"]
         sku = request.form["sku"]
+
         buying_price = float(
             request.form["buying_price"]
         )
+
         selling_price = float(
             request.form["selling_price"]
         )
+
         stock = int(request.form["stock"])
+
         low_stock_level = int(
             request.form["low_stock_level"]
         )
@@ -838,6 +881,15 @@ def reports():
         (user_id,)
     ).fetchone()[0]
 
+    product_profit = conn.execute(
+        """
+        SELECT COALESCE(SUM(profit), 0)
+        FROM receipts
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    ).fetchone()[0]
+
     transactions = conn.execute(
         """
         SELECT *
@@ -856,22 +908,4 @@ def reports():
         "reports.html",
         sales=sales,
         expenses=expenses,
-        profit=profit,
-        transactions=transactions
-    )
-
-
-# =========================
-# START DATABASE
-# =========================
-
-create_database()
-
-
-if __name__ == "__main__":
-
-    app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=True
-        )
+        p
