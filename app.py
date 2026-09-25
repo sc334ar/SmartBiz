@@ -1,13 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
+
 app.secret_key = "change-this-secret-key"
 
 DATABASE = "smartbiz.db"
 
+
+# =========================
+# DATABASE
+# =========================
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
@@ -16,13 +21,13 @@ def get_db():
 
 
 def create_database():
+
     conn = get_db()
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
+            username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL
         )
     """)
@@ -59,12 +64,12 @@ def create_database():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             cheque_number TEXT NOT NULL,
-            bank TEXT NOT NULL,
-            payee TEXT NOT NULL,
+            customer TEXT NOT NULL,
             amount REAL NOT NULL,
-            issue_date TEXT NOT NULL,
-            status TEXT NOT NULL,
-            notes TEXT
+            bank TEXT,
+            due_date TEXT,
+            status TEXT DEFAULT 'Pending',
+            date TEXT NOT NULL
         )
     """)
 
@@ -74,9 +79,8 @@ def create_database():
             user_id INTEGER NOT NULL,
             invoice_number TEXT NOT NULL,
             customer TEXT NOT NULL,
-            date TEXT NOT NULL,
-            due_date TEXT NOT NULL,
-            status TEXT NOT NULL
+            total REAL NOT NULL,
+            date TEXT NOT NULL
         )
     """)
 
@@ -109,31 +113,43 @@ def create_database():
     conn.close()
 
 
+# =========================
+# HOME
+# =========================
+
 @app.route("/")
 def home():
+
     if "user_id" in session:
         return redirect(url_for("dashboard"))
 
     return redirect(url_for("login"))
 
 
+# =========================
+# REGISTER
+# =========================
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
 
     if request.method == "POST":
 
-        name = request.form["name"]
-        email = request.form["email"]
+        username = request.form["username"]
         password = request.form["password"]
 
         hashed_password = generate_password_hash(password)
 
+        conn = get_db()
+
         try:
-            conn = get_db()
 
             conn.execute(
-                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-                (name, email, hashed_password)
+                """
+                INSERT INTO users (username, password)
+                VALUES (?, ?)
+                """,
+                (username, hashed_password)
             )
 
             conn.commit()
@@ -142,82 +158,57 @@ def register():
             return redirect(url_for("login"))
 
         except sqlite3.IntegrityError:
-            return "Email already registered."
+
+            conn.close()
+
+            return "Username already exists."
 
     return render_template("register.html")
 
+
+# =========================
+# LOGIN
+# =========================
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
     if request.method == "POST":
 
-        email = request.form["email"]
+        username = request.form["username"]
         password = request.form["password"]
 
         conn = get_db()
 
         user = conn.execute(
-            "SELECT * FROM users WHERE email = ?",
-            (email,)
+            """
+            SELECT *
+            FROM users
+            WHERE username = ?
+            """,
+            (username,)
         ).fetchone()
 
         conn.close()
 
-        if user and check_password_hash(user["password"], password):
+        if user and check_password_hash(
+            user["password"],
+            password
+        ):
 
             session["user_id"] = user["id"]
-            session["user_name"] = user["name"]
+            session["username"] = user["username"]
 
             return redirect(url_for("dashboard"))
 
-        return "Invalid email or password."
+        return "Invalid username or password."
 
     return render_template("login.html")
 
 
-@app.route("/dashboard")
-def dashboard():
-
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    conn = get_db()
-
-    transactions = conn.execute(
-        """
-        SELECT * FROM transactions
-        WHERE user_id = ?
-        ORDER BY id DESC
-        """,
-        (session["user_id"],)
-    ).fetchall()
-
-    conn.close()
-
-    sales = sum(
-        t["amount"]
-        for t in transactions
-        if t["transaction_type"] == "income"
-    )
-
-    expenses = sum(
-        t["amount"]
-        for t in transactions
-        if t["transaction_type"] == "expense"
-    )
-
-    profit = sales - expenses
-
-    return render_template(
-        "dashboard.html",
-        name=session["user_name"],
-        transactions=transactions,
-        sales=sales,
-        expenses=expenses,
-        profit=profit
-    )
-
+# =========================
+# LOGOUT
+# =========================
 
 @app.route("/logout")
 def logout():
@@ -228,7 +219,87 @@ def logout():
 
 
 # =========================
-# RECEIPTS + INVENTORY
+# DASHBOARD
+# =========================
+
+@app.route("/dashboard")
+def dashboard():
+
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+
+    user_id = session["user_id"]
+
+    sales = conn.execute(
+        """
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'income'
+        """,
+        (user_id,)
+    ).fetchone()[0]
+
+    expenses = conn.execute(
+        """
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'expense'
+        """,
+        (user_id,)
+    ).fetchone()[0]
+
+    receipts_count = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM receipts
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    ).fetchone()[0]
+
+    transactions = conn.execute(
+        """
+        SELECT *
+        FROM transactions
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 10
+        """,
+        (user_id,)
+    ).fetchall()
+
+    low_stock = conn.execute(
+        """
+        SELECT *
+        FROM products
+        WHERE user_id = ?
+        AND stock <= low_stock_level
+        ORDER BY stock ASC
+        """,
+        (user_id,)
+    ).fetchall()
+
+    conn.close()
+
+    profit = sales - expenses
+
+    return render_template(
+        "dashboard.html",
+        sales=sales,
+        expenses=expenses,
+        profit=profit,
+        receipts_count=receipts_count,
+        transactions=transactions,
+        low_stock=low_stock
+    )
+
+
+# =========================
+# RECEIPTS
 # =========================
 
 @app.route("/receipt", methods=["GET", "POST"])
@@ -246,7 +317,6 @@ def receipt():
         quantity = int(request.form["quantity"])
         payment_method = request.form["payment_method"]
 
-        # Find product belonging to logged-in user
         product = conn.execute(
             """
             SELECT *
@@ -258,15 +328,24 @@ def receipt():
         ).fetchone()
 
         if not product:
+
             conn.close()
 
             return """
-            <h2>⚠️ Product not found</h2>
-            <p>Please add this product to Smart Inventory first.</p>
-            <a href="/receipt">← Back to Receipt</a>
+            <h2>Product not found</h2>
+            <p>Please add the product to inventory first.</p>
+            <a href="/receipt">Back</a>
             """
 
-        # Check stock
+        if quantity <= 0:
+
+            conn.close()
+
+            return """
+            <h2>Invalid quantity</h2>
+            <a href="/receipt">Back</a>
+            """
+
         if quantity > product["stock"]:
 
             available = product["stock"]
@@ -276,31 +355,27 @@ def receipt():
             return f"""
             <h2>⚠️ Not enough stock</h2>
 
-            <p>
-                Product: <strong>{item}</strong>
-            </p>
+            <p>Product: <strong>{item}</strong></p>
+
+            <p>Available stock:
+            <strong>{available}</strong></p>
+
+            <p>Requested quantity:
+            <strong>{quantity}</strong></p>
 
             <p>
-                Available stock:
-                <strong>{available}</strong>
+                <a href="/receipt">← Back to Receipt</a>
             </p>
-
-            <p>
-                Requested:
-                <strong>{quantity}</strong>
-            </p>
-
-            <a href="/receipt">← Back to Receipt</a>
             """
 
-        # Automatically use selling price
         price = product["selling_price"]
 
         total = quantity * price
 
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
-        # Generate receipt number
         last_receipt = conn.execute(
             """
             SELECT id
@@ -311,11 +386,15 @@ def receipt():
         ).fetchone()
 
         if last_receipt:
-            receipt_number = f"REC-{last_receipt['id'] + 1:05d}"
+
+            receipt_number = (
+                f"REC-{last_receipt['id'] + 1:05d}"
+            )
+
         else:
+
             receipt_number = "REC-00001"
 
-        # Save receipt
         conn.execute(
             """
             INSERT INTO receipts
@@ -345,7 +424,6 @@ def receipt():
             )
         )
 
-        # Save income transaction
         conn.execute(
             """
             INSERT INTO transactions
@@ -369,7 +447,6 @@ def receipt():
             )
         )
 
-        # Automatically reduce stock
         conn.execute(
             """
             UPDATE products
@@ -399,7 +476,6 @@ def receipt():
             date=date
         )
 
-    # Load products
     products = conn.execute(
         """
         SELECT *
@@ -419,7 +495,7 @@ def receipt():
 
 
 # =========================
-# EXPENSES
+# EXPENSE
 # =========================
 
 @app.route("/expense", methods=["GET", "POST"])
@@ -434,7 +510,9 @@ def expense():
         amount = float(request.form["amount"])
         payment_method = request.form["payment_method"]
 
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         conn = get_db()
 
@@ -479,17 +557,19 @@ def cheques():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    conn = get_db()
+
     if request.method == "POST":
 
         cheque_number = request.form["cheque_number"]
-        bank = request.form["bank"]
-        payee = request.form["payee"]
+        customer = request.form["customer"]
         amount = float(request.form["amount"])
-        issue_date = request.form["issue_date"]
-        status = request.form["status"]
-        notes = request.form["notes"]
+        bank = request.form["bank"]
+        due_date = request.form["due_date"]
 
-        conn = get_db()
+        date = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         conn.execute(
             """
@@ -497,37 +577,31 @@ def cheques():
             (
                 user_id,
                 cheque_number,
-                bank,
-                payee,
+                customer,
                 amount,
-                issue_date,
-                status,
-                notes
+                bank,
+                due_date,
+                date
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 session["user_id"],
                 cheque_number,
-                bank,
-                payee,
+                customer,
                 amount,
-                issue_date,
-                status,
-                notes
+                bank,
+                due_date,
+                date
             )
         )
 
         conn.commit()
-        conn.close()
 
-        return redirect(url_for("cheques"))
-
-    conn = get_db()
-
-    cheque_list = conn.execute(
+    cheques_list = conn.execute(
         """
-        SELECT * FROM cheques
+        SELECT *
+        FROM cheques
         WHERE user_id = ?
         ORDER BY id DESC
         """,
@@ -538,12 +612,12 @@ def cheques():
 
     return render_template(
         "cheques.html",
-        cheques=cheque_list
+        cheques=cheques_list
     )
 
 
 # =========================
-# INVOICES
+# INVOICE
 # =========================
 
 @app.route("/invoice", methods=["GET", "POST"])
@@ -554,155 +628,100 @@ def invoice():
 
     if request.method == "POST":
 
-        conn = None
+        customer = request.form["customer"]
 
-        try:
-            customer = request.form["customer"]
-            due_date = request.form["due_date"]
+        items = request.form.getlist("item[]")
+        quantities = request.form.getlist("quantity[]")
+        prices = request.form.getlist("price[]")
 
-            items = request.form.getlist("item[]")
-            quantities = request.form.getlist("quantity[]")
-            prices = request.form.getlist("price[]")
+        total = 0
 
-            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for i in range(len(items)):
 
-            conn = get_db()
+            quantity = int(quantities[i])
+            price = float(prices[i])
 
-            last_invoice = conn.execute(
+            total += quantity * price
+
+        date = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        conn = get_db()
+
+        last_invoice = conn.execute(
+            """
+            SELECT id
+            FROM invoices
+            ORDER BY id DESC
+            LIMIT 1
+            """
+        ).fetchone()
+
+        if last_invoice:
+
+            invoice_number = (
+                f"INV-{last_invoice['id'] + 1:05d}"
+            )
+
+        else:
+
+            invoice_number = "INV-00001"
+
+        cursor = conn.execute(
+            """
+            INSERT INTO invoices
+            (
+                user_id,
+                invoice_number,
+                customer,
+                total,
+                date
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                invoice_number,
+                customer,
+                total,
+                date
+            )
+        )
+
+        invoice_id = cursor.lastrowid
+
+        for i in range(len(items)):
+
+            quantity = int(quantities[i])
+            price = float(prices[i])
+            item_total = quantity * price
+
+            conn.execute(
                 """
-                SELECT id
-                FROM invoices
-                ORDER BY id DESC
-                LIMIT 1
-                """
-            ).fetchone()
-
-            if last_invoice:
-                invoice_number = f"INV-{last_invoice['id'] + 1:05d}"
-            else:
-                invoice_number = "INV-00001"
-
-            cursor = conn.execute(
-                """
-                INSERT INTO invoices
+                INSERT INTO invoice_items
                 (
-                    user_id,
-                    invoice_number,
-                    customer,
-                    date,
-                    due_date,
-                    status
+                    invoice_id,
+                    item,
+                    quantity,
+                    price,
+                    total
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
-                    session["user_id"],
-                    invoice_number,
-                    customer,
-                    date,
-                    due_date,
-                    "Unpaid"
+                    invoice_id,
+                    items[i],
+                    quantity,
+                    price,
+                    item_total
                 )
             )
 
-            invoice_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
 
-            invoice_items = []
-            total_invoice = 0
-
-            for item, quantity, price in zip(
-                items,
-                quantities,
-                prices
-            ):
-
-                quantity = int(quantity)
-                price = float(price)
-
-                item_total = quantity * price
-                total_invoice += item_total
-
-                invoice_items.append({
-                    "item": item,
-                    "quantity": quantity,
-                    "price": price,
-                    "total": item_total
-                })
-
-                conn.execute(
-                    """
-                    INSERT INTO invoice_items
-                    (
-                        invoice_id,
-                        item,
-                        quantity,
-                        price,
-                        total
-                    )
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (
-                        invoice_id,
-                        item,
-                        quantity,
-                        price,
-                        item_total
-                    )
-                )
-
-            conn.commit()
-            conn.close()
-            conn = None
-
-            return render_template(
-                "invoice_result.html",
-                invoice_number=invoice_number,
-                customer=customer,
-                date=date,
-                due_date=due_date,
-                items=invoice_items,
-                total=total_invoice
-            )
-
-        except Exception as e:
-
-            if conn:
-                conn.rollback()
-                conn.close()
-
-            app.logger.exception("Invoice error")
-
-            return f"""
-            <html>
-            <head>
-                <title>SmartBiz Invoice Error</title>
-            </head>
-            <body style="font-family: Arial; padding: 30px;">
-                <h2>Invoice Error</h2>
-
-                <p>
-                    <strong>
-                        The invoice could not be created.
-                    </strong>
-                </p>
-
-                <p style="color:red;">
-                    {str(e)}
-                </p>
-
-                <hr>
-
-                <p>
-                    Please send me exactly the error message
-                    shown above.
-                </p>
-
-                <a href="/invoice">
-                    ← Back to Invoice
-                </a>
-            </body>
-            </html>
-            """
+        return redirect(url_for("invoice"))
 
     return render_template("invoice.html")
 
@@ -722,20 +741,14 @@ def inventory():
     if request.method == "POST":
 
         name = request.form["name"]
-        sku = request.form.get("sku", "")
-
+        sku = request.form["sku"]
         buying_price = float(
             request.form["buying_price"]
         )
-
         selling_price = float(
             request.form["selling_price"]
         )
-
-        stock = int(
-            request.form["stock"]
-        )
-
+        stock = int(request.form["stock"])
         low_stock_level = int(
             request.form["low_stock_level"]
         )
@@ -803,59 +816,62 @@ def reports():
 
     conn = get_db()
 
-    sales_result = conn.execute(
+    user_id = session["user_id"]
+
+    sales = conn.execute(
         """
         SELECT COALESCE(SUM(amount), 0)
         FROM transactions
         WHERE user_id = ?
         AND transaction_type = 'income'
         """,
-        (session["user_id"],)
-    ).fetchone()
+        (user_id,)
+    ).fetchone()[0]
 
-    sales = sales_result[0]
-
-    expenses_result = conn.execute(
+    expenses = conn.execute(
         """
         SELECT COALESCE(SUM(amount), 0)
         FROM transactions
         WHERE user_id = ?
         AND transaction_type = 'expense'
         """,
-        (session["user_id"],)
-    ).fetchone()
+        (user_id,)
+    ).fetchone()[0]
 
-    expenses = expenses_result[0]
+    transactions = conn.execute(
+        """
+        SELECT *
+        FROM transactions
+        WHERE user_id = ?
+        ORDER BY id DESC
+        """,
+        (user_id,)
+    ).fetchall()
+
+    conn.close()
 
     profit = sales - expenses
 
-    receipt_result = conn.execute(
-        """
-        SELECT COUNT(*)
-        FROM receipts
-        WHERE user_id = ?
-        """,
-        (session["user_id"],)
-    ).fetchone()
+    return render_template(
+        "reports.html",
+        sales=sales,
+        expenses=expenses,
+        profit=profit,
+        transactions=transactions
+    )
 
-    receipt_count = receipt_result[0]
 
-    invoice_result = conn.execute(
-        """
-        SELECT COUNT(*)
-        FROM invoices
-        WHERE user_id = ?
-        """,
-        (session["user_id"],)
-    ).fetchone()
+# =========================
+# START DATABASE
+# =========================
 
-    invoice_count = invoice_result[0]
+create_database()
 
-    cheque_result = conn.execute(
-        """
-        SELECT COALESCE(SUM(amount), 0)
-        FROM cheques
-        WHERE user_id = ?
-        """,
-        (session["user_id"],)
-    ).f
+
+if __name__ == "__main__":
+
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+        )
