@@ -299,16 +299,7 @@ def receipt():
 
         conn.commit()
         conn.close()
-return render_template(
-    "receipt_result.html",
-    customer=customer,
-    item=item,
-    quantity=quantity,
-    price=price,
-    total=total,
-    payment_method=payment_method,
-    receipt_number=receipt_number
-)
+
         return render_template(
             "receipt_result.html",
             receipt_number=receipt_number,
@@ -322,65 +313,6 @@ return render_template(
         )
 
     return render_template("receipt.html")
-
-
-@app.route("/receipts")
-def receipts():
-
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    conn = get_db()
-
-    receipt_list = conn.execute(
-        """
-        SELECT * FROM receipts
-        WHERE user_id = ?
-        ORDER BY id DESC
-        """,
-        (session["user_id"],)
-    ).fetchall()
-
-    conn.close()
-
-    return render_template(
-        "receipts.html",
-        receipts=receipt_list
-    )
-
-
-@app.route("/receipt/<int:receipt_id>")
-def receipt_view(receipt_id):
-
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    conn = get_db()
-
-    receipt_data = conn.execute(
-        """
-        SELECT * FROM receipts
-        WHERE id = ? AND user_id = ?
-        """,
-        (receipt_id, session["user_id"])
-    ).fetchone()
-
-    conn.close()
-
-    if receipt_data is None:
-        return "Receipt not found."
-
-    return render_template(
-        "receipt_result.html",
-        receipt_number=receipt_data["receipt_number"],
-        customer=receipt_data["customer"],
-        item=receipt_data["item"],
-        quantity=receipt_data["quantity"],
-        price=receipt_data["price"],
-        total=receipt_data["total"],
-        payment_method=receipt_data["payment_method"],
-        date=receipt_data["date"]
-    )
 
 
 @app.route("/expense", methods=["GET", "POST"])
