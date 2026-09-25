@@ -299,7 +299,16 @@ def receipt():
 
         conn.commit()
         conn.close()
-
+return render_template(
+    "receipt_result.html",
+    customer=customer,
+    item=item,
+    quantity=quantity,
+    price=price,
+    total=total,
+    payment_method=payment_method,
+    receipt_number=receipt_number
+)
         return render_template(
             "receipt_result.html",
             receipt_number=receipt_number,
