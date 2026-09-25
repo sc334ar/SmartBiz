@@ -595,7 +595,71 @@ def invoice():
 
     return render_template("invoice.html")
 
+@app.route("/inventory", methods=["GET", "POST"])
+def inventory():
 
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+
+    if request.method == "POST":
+
+        name = request.form["name"]
+        sku = request.form["sku"]
+        buying_price = float(request.form["buying_price"])
+        selling_price = float(request.form["selling_price"])
+        stock = int(request.form["stock"])
+        low_stock_level = int(request.form["low_stock_level"])
+
+        date_added = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        conn.execute(
+            """
+            INSERT INTO products
+            (
+                user_id,
+                name,
+                sku,
+                buying_price,
+                selling_price,
+                stock,
+                low_stock_level,
+                date_added
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                name,
+                sku,
+                buying_price,
+                selling_price,
+                stock,
+                low_stock_level,
+                date_added
+            )
+        )
+
+        conn.commit()
+
+    products = conn.execute(
+        """
+        SELECT *
+        FROM products
+        WHERE user_id = ?
+        ORDER BY id DESC
+        """,
+        (session["user_id"],)
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "inventory.html",
+        products=products
+    )
+    
 @app.route("/reports")
 def reports():
 
