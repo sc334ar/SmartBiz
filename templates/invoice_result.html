@@ -45,6 +45,7 @@
         .invoice td {
             padding: 12px;
             border-bottom: 1px solid #ddd;
+            text-align: left;
         }
 
         .invoice-total {
@@ -130,22 +131,24 @@
             <th>Total</th>
         </tr>
 
-        {% for item, quantity, price in items %}
+        {% for invoice_item in items %}
 
         <tr>
 
-            <td>{{ item }}</td>
-
-            <td>{{ quantity }}</td>
-
             <td>
-                KSh {{ "%.2f"|format(price|float) }}
+                {{ invoice_item.item }}
             </td>
 
             <td>
-                KSh {{ "%.2f"|format(
-                    quantity|int * price|float
-                ) }}
+                {{ invoice_item.quantity }}
+            </td>
+
+            <td>
+                KSh {{ "%.2f"|format(invoice_item.price) }}
+            </td>
+
+            <td>
+                KSh {{ "%.2f"|format(invoice_item.total) }}
             </td>
 
         </tr>
@@ -185,4 +188,4 @@
 
 </body>
 
-  </html>
+    </html>
