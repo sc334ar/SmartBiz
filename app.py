@@ -861,6 +861,7 @@ def reports():
 
     user_id = session["user_id"]
 
+    # Total sales
     sales = conn.execute(
         """
         SELECT COALESCE(SUM(amount), 0)
@@ -871,6 +872,7 @@ def reports():
         (user_id,)
     ).fetchone()[0]
 
+    # Total expenses
     expenses = conn.execute(
         """
         SELECT COALESCE(SUM(amount), 0)
@@ -881,6 +883,7 @@ def reports():
         (user_id,)
     ).fetchone()[0]
 
+    # Product profit
     product_profit = conn.execute(
         """
         SELECT COALESCE(SUM(profit), 0)
@@ -890,12 +893,56 @@ def reports():
         (user_id,)
     ).fetchone()[0]
 
+    # Number of receipts
+    receipts_count = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM receipts
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    ).fetchone()[0]
+
+    # Sales by payment method
+    payment_methods = conn.execute(
+        """
+        SELECT
+            payment_method,
+            COALESCE(SUM(amount), 0) AS total
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'income'
+        GROUP BY payment_method
+        ORDER BY total DESC
+        """,
+        (user_id,)
+    ).fetchall()
+
+    # Best-selling products
+    top_products = conn.execute(
+        """
+        SELECT
+            item,
+            SUM(quantity) AS quantity,
+            SUM(total) AS sales,
+            SUM(profit) AS profit
+        FROM receipts
+        WHERE user_id = ?
+        GROUP BY item
+        ORDER BY quantity DESC
+        LIMIT 10
+        """,
+        (user_id,)
+    ).fetchall()
+
+    # Recent transactions
     transactions = conn.execute(
         """
         SELECT *
         FROM transactions
         WHERE user_id = ?
         ORDER BY id DESC
+        LIMIT 50
         """,
         (user_id,)
     ).fetchall()
@@ -908,4 +955,11 @@ def reports():
         "reports.html",
         sales=sales,
         expenses=expenses,
-        p
+        profit=profit,
+        product_profit=product_profit,
+        receipts_count=receipts_count,
+        payment_methods=payment_methods,
+        top_products=top_products,
+        transactions=transactions
+    )
+    
