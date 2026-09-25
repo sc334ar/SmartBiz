@@ -660,7 +660,19 @@ def reports():
         cheque_total=cheque_total
     )
 
-
+conn.execute("""
+        CREATE TABLE IF NOT EXISTS products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            sku TEXT,
+            buying_price REAL NOT NULL DEFAULT 0,
+            selling_price REAL NOT NULL,
+            stock INTEGER NOT NULL DEFAULT 0,
+            low_stock_level INTEGER NOT NULL DEFAULT 5,
+            date_added TEXT NOT NULL
+        )
+    """)
 create_database()
 
 if __name__ == "__main__":
