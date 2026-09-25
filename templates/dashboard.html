@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartBiz Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
@@ -18,6 +20,9 @@
 
         <a href="{{ url_for('logout') }}">Logout</a>
     </header>
+
+
+    <!-- FINANCIAL SUMMARY -->
 
     <section class="cards">
 
@@ -35,18 +40,134 @@
             <h3>📊 Profit</h3>
             <p>KSh {{ "%.2f"|format(profit) }}</p>
         </div>
-<div class="card">
 
-    <h2>🧾 Receipts</h2>
-
-    <p>Create a professional customer receipt.</p>
-
-    <a href="{{ url_for('receipt') }}">
-        <button>Create Receipt</button>
-    </a>
-
-</div>
     </section>
+
+
+    <!-- BUSINESS TOOLS -->
+
+    <section class="cards">
+
+        <!-- RECEIPTS -->
+
+        <div class="card">
+
+            <h2>🧾 Receipts</h2>
+
+            <p>
+                Create professional customer receipts.
+            </p>
+
+            <a href="{{ url_for('receipt') }}">
+                <button>
+                    Create Receipt
+                </button>
+            </a>
+
+        </div>
+
+
+        <!-- EXPENSES -->
+
+        <div class="card">
+
+            <h2>💸 Expenses</h2>
+
+            <p>
+                Record money spent by the business.
+            </p>
+
+            <a href="{{ url_for('expense') }}">
+                <button>
+                    Add Expense
+                </button>
+            </a>
+
+        </div>
+
+
+        <!-- INVOICES -->
+
+        <div class="card">
+
+            <h2>📄 Invoice Generator</h2>
+
+            <p>
+                Create professional invoices
+                with multiple items.
+            </p>
+
+            <a href="{{ url_for('invoice') }}">
+                <button>
+                    Create Invoice
+                </button>
+            </a>
+
+        </div>
+
+
+        <!-- INVENTORY -->
+
+        <div class="card">
+
+            <h2>📦 Smart Inventory</h2>
+
+            <p>
+                Manage products, stock,
+                prices and low-stock alerts.
+            </p>
+
+            <a href="{{ url_for('inventory') }}">
+                <button>
+                    Manage Inventory
+                </button>
+            </a>
+
+        </div>
+
+
+        <!-- REPORTS -->
+
+        <div class="card">
+
+            <h2>📊 Financial Reports</h2>
+
+            <p>
+                View your sales, expenses
+                and profit.
+            </p>
+
+            <a href="{{ url_for('reports') }}">
+                <button>
+                    View Reports
+                </button>
+            </a>
+
+        </div>
+
+
+        <!-- CHEQUES -->
+
+        <div class="card">
+
+            <h2>🏦 Cheque Manager</h2>
+
+            <p>
+                Record and track business cheques.
+            </p>
+
+            <a href="{{ url_for('cheques') }}">
+                <button>
+                    Manage Cheques
+                </button>
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- TRANSACTIONS -->
 
     <section>
 
@@ -67,11 +188,27 @@
             {% for transaction in transactions %}
 
             <tr>
-                <td>{{ transaction["transaction_type"] }}</td>
-                <td>{{ transaction["description"] }}</td>
-                <td>KSh {{ "%.2f"|format(transaction["amount"]) }}</td>
-                <td>{{ transaction["payment_method"] }}</td>
-                <td>{{ transaction["date"] }}</td>
+
+                <td>
+                    {{ transaction["transaction_type"] }}
+                </td>
+
+                <td>
+                    {{ transaction["description"] }}
+                </td>
+
+                <td>
+                    KSh {{ "%.2f"|format(transaction["amount"]) }}
+                </td>
+
+                <td>
+                    {{ transaction["payment_method"] }}
+                </td>
+
+                <td>
+                    {{ transaction["date"] }}
+                </td>
+
             </tr>
 
             {% endfor %}
@@ -89,60 +226,4 @@
 </div>
 
 </body>
-</html>
-<div class="card">
-
-    <h2>💸 Expenses</h2>
-
-    <p>Record money spent by the business.</p>
-
-    <a href="{{ url_for('expense') }}">
-        <button>Add Expense</button>
-    </a>
-<div class="card">
-
-    <h2>📄 Invoice Generator</h2>
-
-    <p>
-        Create professional invoices
-        with multiple items.
-    </p>
-
-    <a href="{{ url_for('invoice') }}">
-        <button>
-            Create Invoice
-        </button>
-    </a>
-
-    </div>
-    <div class="card">
-
-    <h2>📊 Financial Reports</h2>
-
-    <p>
-        View your sales, expenses and profit.
-    </p>
-
-    <a href="{{ url_for('reports') }}">
-
-        <button>
-            View Reports
-        </button>
-
-    </a>
-
-    </div>
-</div>
-<div class="card">
-    <h2>🏦 Cheque Manager</h2>
-
-    <p>
-        Record and track business cheques.
-    </p>
-
-    <a href="{{ url_for('cheques') }}">
-        <button>
-            Manage Cheques
-        </button>
-    </a>
-</div>
+    </html>
