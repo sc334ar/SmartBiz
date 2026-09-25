@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Receipt - SmartBiz</title>
-   <p><strong>Receipt No:</strong> {{ receipt_number }}</p>
 
-<p><strong>Date:</strong> {{ date }}</p>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Create Receipt - SmartBiz</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
@@ -25,16 +25,31 @@
             required
         >
 
-        <input
-            type="text"
-            name="item"
-            placeholder="Item or Service"
-            required
-        >
+        <label>Product</label>
+
+        <select name="item" id="product" required onchange="updatePrice()">
+
+            <option value="">Select Product</option>
+
+            {% for product in products %}
+
+            <option
+                value="{{ product['name'] }}"
+                data-price="{{ product['selling_price'] }}"
+                data-stock="{{ product['stock'] }}"
+            >
+                {{ product['name'] }}
+                — Stock: {{ product['stock'] }}
+            </option>
+
+            {% endfor %}
+
+        </select>
 
         <input
             type="number"
             name="quantity"
+            id="quantity"
             placeholder="Quantity"
             min="1"
             required
@@ -43,29 +58,92 @@
         <input
             type="number"
             name="price"
+            id="price"
             placeholder="Price per Item (KSh)"
             min="0"
             step="0.01"
             required
+            readonly
         >
 
+        <p id="stock-message"></p>
+
         <select name="payment_method" required>
-            <option value="">Payment Method</option>
-            <option value="Cash">Cash</option>
-            <option value="M-Pesa">M-Pesa</option>
-            <option value="Bank">Bank</option>
-            <option value="Cheque">Cheque</option>
+
+            <option value="">
+                Payment Method
+            </option>
+
+            <option value="Cash">
+                Cash
+            </option>
+
+            <option value="M-Pesa">
+                M-Pesa
+            </option>
+
+            <option value="Bank">
+                Bank
+            </option>
+
+            <option value="Cheque">
+                Cheque
+            </option>
+
         </select>
 
-        <button type="submit">Generate Receipt</button>
+        <button type="submit">
+            Generate Receipt
+        </button>
 
     </form>
 
     <p>
-        <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        <a href="{{ url_for('dashboard') }}">
+            ← Back to Dashboard
+        </a>
     </p>
 
 </div>
+
+
+<script>
+
+function updatePrice() {
+
+    const product =
+        document.getElementById("product");
+
+    const selected =
+        product.options[product.selectedIndex];
+
+    const price =
+        selected.getAttribute("data-price");
+
+    const stock =
+        selected.getAttribute("data-stock");
+
+    document.getElementById("price").value =
+        price || "";
+
+    const message =
+        document.getElementById("stock-message");
+
+    if (stock !== null) {
+
+        message.innerHTML =
+            "📦 Available stock: <strong>"
+            + stock +
+            "</strong>";
+
+    } else {
+
+        message.innerHTML = "";
+
+    }
+}
+
+</script>
 
 </body>
 </html>
