@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta name="viewport"
@@ -9,8 +10,7 @@
 
     <title>SmartBiz Reports</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
 
@@ -31,6 +31,7 @@
             display: grid;
             grid-template-columns:
                 repeat(auto-fit, minmax(210px, 1fr));
+
             gap: 20px;
             margin: 25px 0;
         }
@@ -40,11 +41,24 @@
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 3px 12px rgba(0,0,0,.08);
+            margin-bottom: 25px;
         }
 
         .amount {
             font-size: 25px;
             font-weight: bold;
+        }
+
+        .charts {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(320px, 1fr));
+
+            gap: 25px;
+        }
+
+        .chart-box {
+            height: 350px;
         }
 
         table {
@@ -69,7 +83,6 @@
 
         .back {
             display: inline-block;
-            margin-top: 20px;
             padding: 10px 16px;
             border-radius: 7px;
             background: #333;
@@ -89,13 +102,11 @@
     <h1>📊 SmartBiz Reports</h1>
 
     <p>
-        Business performance overview
+        Business performance analytics
     </p>
 
 
-    <!-- ====================== -->
-    <!-- FINANCIAL SUMMARY -->
-    <!-- ====================== -->
+    <!-- SUMMARY -->
 
     <div class="cards">
 
@@ -142,16 +153,123 @@
 
         </div>
 
+
+        <div class="card">
+
+            <h2>🧾 Receipts</h2>
+
+            <div class="amount">
+                {{ receipts_count }}
+            </div>
+
+        </div>
+
     </div>
 
 
-    <!-- ====================== -->
-    <!-- TRANSACTIONS -->
-    <!-- ====================== -->
+    <!-- CHARTS -->
+
+    <div class="charts">
+
+        <div class="card">
+
+            <h2>📊 Sales vs Expenses</h2>
+
+            <div class="chart-box">
+
+                <canvas id="financialChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <h2>💳 Payment Methods</h2>
+
+            <div class="chart-box">
+
+                <canvas id="paymentChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- TOP PRODUCTS -->
 
     <div class="card">
 
-        <h2>📋 Transaction History</h2>
+        <h2>🏆 Best-Selling Products</h2>
+
+        {% if top_products %}
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity Sold</th>
+                        <th>Sales</th>
+                        <th>Profit</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for product in top_products %}
+
+                    <tr>
+
+                        <td>
+                            {{ product['item'] }}
+                        </td>
+
+                        <td>
+                            {{ product['quantity'] }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(product['sales']) }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(product['profit']) }}
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <p>No product sales yet.</p>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- TRANSACTIONS -->
+
+    <div class="card">
+
+        <h2>📋 Recent Transactions</h2>
 
         {% if transactions %}
 
@@ -213,22 +331,104 @@
 
         {% else %}
 
-        <p>No transactions recorded yet.</p>
+        <p>No transactions yet.</p>
 
         {% endif %}
 
     </div>
 
 
-    <a class="back"
-       href="{{ url_for('dashboard') }}">
-
+    <a
+        class="back"
+        href="{{ url_for('dashboard') }}"
+    >
         ← Back to Dashboard
-
     </a>
 
 </div>
 
+
+<script>
+
+const financialChart =
+    document.getElementById("financialChart");
+
+new Chart(financialChart, {
+
+    type: "bar",
+
+    data: {
+
+        labels: [
+            "Sales",
+            "Expenses",
+            "Profit"
+        ],
+
+        datasets: [{
+
+            label: "KSh",
+
+            data: [
+                {{ sales }},
+                {{ expenses }},
+                {{ profit }}
+            ]
+
+        }]
+
+    },
+
+    options: {
+
+        responsive: true,
+
+        maintainAspectRatio: false
+
+    }
+
+});
+
+
+const paymentChart =
+    document.getElementById("paymentChart");
+
+new Chart(paymentChart, {
+
+    type: "doughnut",
+
+    data: {
+
+        labels: [
+            {% for method in payment_methods %}
+                "{{ method['payment_method'] or 'Other' }}",
+            {% endfor %}
+        ],
+
+        datasets: [{
+
+            data: [
+                {% for method in payment_methods %}
+                    {{ method['total'] }},
+                {% endfor %}
+            ]
+
+        }]
+
+    },
+
+    options: {
+
+        responsive: true,
+
+        maintainAspectRatio: false
+
+    }
+
+});
+
+</script>
+
 </body>
 
-</html>
+                                    </html>
