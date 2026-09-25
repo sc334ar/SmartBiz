@@ -439,112 +439,145 @@ def invoice():
 
     if request.method == "POST":
 
-        customer = request.form["customer"]
-        due_date = request.form["due_date"]
+        conn = None
 
-        items = request.form.getlist("item[]")
-        quantities = request.form.getlist("quantity[]")
-        prices = request.form.getlist("price[]")
+        try:
+            customer = request.form["customer"]
+            due_date = request.form["due_date"]
 
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            items = request.form.getlist("item[]")
+            quantities = request.form.getlist("quantity[]")
+            prices = request.form.getlist("price[]")
 
-        conn = get_db()
+            date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        last_invoice = conn.execute(
-            """
-            SELECT id FROM invoices
-            ORDER BY id DESC
-            LIMIT 1
-            """
-        ).fetchone()
+            conn = get_db()
 
-        if last_invoice:
-            invoice_number = f"INV-{last_invoice['id'] + 1:05d}"
-        else:
-            invoice_number = "INV-00001"
-
-        cursor = conn.execute(
-            """
-            INSERT INTO invoices
-            (
-                user_id,
-                invoice_number,
-                customer,
-                date,
-                due_date,
-                status
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                session["user_id"],
-                invoice_number,
-                customer,
-                date,
-                due_date,
-                "Unpaid"
-            )
-        )
-
-        invoice_id = cursor.lastrowid
-
-        invoice_items = []
-        total_invoice = 0
-
-        for item, quantity, price in zip(
-            items,
-            quantities,
-            prices
-        ):
-
-            quantity = int(quantity)
-            price = float(price)
-
-            item_total = quantity * price
-            total_invoice += item_total
-
-            invoice_items.append({
-                "item": item,
-                "quantity": quantity,
-                "price": price,
-                "total": item_total
-            })
-
-            conn.execute(
+            last_invoice = conn.execute(
                 """
-                INSERT INTO invoice_items
+                SELECT id FROM invoices
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            ).fetchone()
+
+            if last_invoice:
+                invoice_number = f"INV-{last_invoice['id'] + 1:05d}"
+            else:
+                invoice_number = "INV-00001"
+
+            cursor = conn.execute(
+                """
+                INSERT INTO invoices
                 (
-                    invoice_id,
-                    item,
-                    quantity,
-                    price,
-                    total
+                    user_id,
+                    invoice_number,
+                    customer,
+                    date,
+                    due_date,
+                    status
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    invoice_id,
-                    item,
-                    quantity,
-                    price,
-                    item_total
+                    session["user_id"],
+                    invoice_number,
+                    customer,
+                    date,
+                    due_date,
+                    "Unpaid"
                 )
             )
 
-        conn.commit()
-        conn.close()
+            invoice_id = cursor.lastrowid
 
-        return render_template(
-            "invoice_result.html",
-            invoice_number=invoice_number,
-            customer=customer,
-            date=date,
-            due_date=due_date,
-            items=invoice_items,
-            total=total_invoice
-        )
+            invoice_items = []
+            total_invoice = 0
 
-    # This was missing
+            for item, quantity, price in zip(
+                items,
+                quantities,
+                prices
+            ):
+
+                quantity = int(quantity)
+                price = float(price)
+
+                item_total = quantity * price
+                total_invoice += item_total
+
+                invoice_items.append({
+                    "item": item,
+                    "quantity": quantity,
+                    "price": price,
+                    "total": item_total
+                })
+
+                conn.execute(
+                    """
+                    INSERT INTO invoice_items
+                    (
+                        invoice_id,
+                        item,
+                        quantity,
+                        price,
+                        total
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        invoice_id,
+                        item,
+                        quantity,
+                        price,
+                        item_total
+                    )
+                )
+
+            conn.commit()
+            conn.close()
+            conn = None
+
+            return render_template(
+                "invoice_result.html",
+                invoice_number=invoice_number,
+                customer=customer,
+                date=date,
+                due_date=due_date,
+                items=invoice_items,
+                total=total_invoice
+            )
+
+        except Exception as e:
+
+            if conn:
+                conn.rollback()
+                conn.close()
+
+            app.logger.exception("Invoice error")
+
+            return f"""
+            <html>
+            <head>
+                <title>SmartBiz Invoice Error</title>
+            </head>
+            <body style="font-family: Arial; padding: 30px;">
+                <h2>Invoice Error</h2>
+                <p><strong>The invoice could not be created.</strong></p>
+
+                <p style="color:red;">
+                    {str(e)}
+                </p>
+
+                <hr>
+
+                <p>Please send me exactly the error message shown above.</p>
+
+                <a href="/invoice">← Back to Invoice</a>
+            </body>
+            </html>
+            """
+
     return render_template("invoice.html")
 
 
