@@ -2,152 +2,228 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Financial Reports - SmartBiz</title>
+    <title>SmartBiz Reports</title>
 
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
 
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7f9;
+            margin: 0;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1200px;
+            margin: auto;
+            padding: 25px 0;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(210px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.08);
+        }
+
+        .amount {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f1f1;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 16px;
+            border-radius: 7px;
+            background: #333;
+            color: white;
+            text-decoration: none;
+        }
+
+    </style>
+
 </head>
+
 
 <body>
 
-<div class="dashboard">
+<div class="container">
 
-    <header>
+    <h1>📊 SmartBiz Reports</h1>
 
-        <h1>📊 Financial Reports</h1>
-
-        <p>SmartBiz business financial summary</p>
-
-        <a href="{{ url_for('dashboard') }}">
-            ← Back to Dashboard
-        </a>
-
-    </header>
+    <p>
+        Business performance overview
+    </p>
 
 
-    <!-- Financial Summary -->
+    <!-- ====================== -->
+    <!-- FINANCIAL SUMMARY -->
+    <!-- ====================== -->
 
-    <section class="cards">
+    <div class="cards">
 
         <div class="card">
 
-            <h3>💰 Total Sales</h3>
+            <h2>💰 Sales</h2>
 
-            <p>
+            <div class="amount">
                 KSh {{ "%.2f"|format(sales) }}
-            </p>
+            </div>
 
         </div>
 
 
         <div class="card">
 
-            <h3>💸 Total Expenses</h3>
+            <h2>💸 Expenses</h2>
 
-            <p>
+            <div class="amount">
                 KSh {{ "%.2f"|format(expenses) }}
-            </p>
+            </div>
 
         </div>
 
 
         <div class="card">
 
-            <h3>📈 Profit</h3>
+            <h2>📈 Net Profit</h2>
 
-            <p>
+            <div class="amount">
                 KSh {{ "%.2f"|format(profit) }}
-            </p>
-
-        </div>
-
-    </section>
-
-
-    <!-- Business Activity -->
-
-    <section class="cards">
-
-        <div class="card">
-
-            <h3>🧾 Receipts</h3>
-
-            <p>
-                {{ receipt_count }}
-            </p>
+            </div>
 
         </div>
 
 
         <div class="card">
 
-            <h3>📄 Invoices</h3>
+            <h2>💵 Product Profit</h2>
 
-            <p>
-                {{ invoice_count }}
-            </p>
-
-        </div>
-
-
-        <div class="card">
-
-            <h3>🏦 Cheques</h3>
-
-            <p>
-                KSh {{ "%.2f"|format(cheque_total) }}
-            </p>
+            <div class="amount">
+                KSh {{ "%.2f"|format(product_profit) }}
+            </div>
 
         </div>
-
-    </section>
-
-
-    <!-- Profit Explanation -->
-
-    <div class="card">
-
-        <h2>📋 Financial Summary</h2>
-
-        <p>
-            Total Sales:
-            <strong>
-                KSh {{ "%.2f"|format(sales) }}
-            </strong>
-        </p>
-
-        <p>
-            Total Expenses:
-            <strong>
-                KSh {{ "%.2f"|format(expenses) }}
-            </strong>
-        </p>
-
-        <p>
-            Net Profit:
-            <strong>
-                KSh {{ "%.2f"|format(profit) }}
-            </strong>
-        </p>
 
     </div>
 
 
-    <br>
+    <!-- ====================== -->
+    <!-- TRANSACTIONS -->
+    <!-- ====================== -->
+
+    <div class="card">
+
+        <h2>📋 Transaction History</h2>
+
+        {% if transactions %}
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Payment</th>
+                        <th>Amount</th>
+
+                    </tr>
+
+                </thead>
 
 
-    <a href="{{ url_for('dashboard') }}">
+                <tbody>
 
-        <button>
-            ← Return to Dashboard
-        </button>
+                {% for transaction in transactions %}
+
+                    <tr>
+
+                        <td>
+                            {{ transaction['date'] }}
+                        </td>
+
+                        <td>
+                            {{ transaction['transaction_type'] }}
+                        </td>
+
+                        <td>
+                            {{ transaction['description'] }}
+                        </td>
+
+                        <td>
+                            {{ transaction['payment_method'] or '-' }}
+                        </td>
+
+                        <td>
+                            KSh
+                            {{ "%.2f"|format(transaction['amount']) }}
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <p>No transactions recorded yet.</p>
+
+        {% endif %}
+
+    </div>
+
+
+    <a class="back"
+       href="{{ url_for('dashboard') }}">
+
+        ← Back to Dashboard
 
     </a>
 
@@ -155,4 +231,4 @@
 
 </body>
 
-  </html>
+</html>
