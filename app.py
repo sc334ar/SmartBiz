@@ -544,6 +544,7 @@ def invoice():
             total=total_invoice
         )
 
+    # This was missing
     return render_template("invoice.html")
 
 
