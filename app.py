@@ -818,6 +818,10 @@ def reports():
 
     user_id = session["user_id"]
 
+    # -------------------------
+    # SALES
+    # -------------------------
+
     sales = conn.execute(
         """
         SELECT COALESCE(SUM(amount), 0)
@@ -827,6 +831,10 @@ def reports():
         """,
         (user_id,)
     ).fetchone()[0]
+
+    # -------------------------
+    # EXPENSES
+    # -------------------------
 
     expenses = conn.execute(
         """
@@ -838,17 +846,75 @@ def reports():
         (user_id,)
     ).fetchone()[0]
 
+    # -------------------------
+    # RECEIPTS
+    # -------------------------
+
+    receipts_count = conn.execute(
+        """
+        SELECT COUNT(*)
+        FROM receipts
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    ).fetchone()[0]
+
+    # -------------------------
+    # PAYMENT METHODS
+    # -------------------------
+
+    payment_methods = conn.execute(
+        """
+        SELECT
+            payment_method,
+            COALESCE(SUM(total), 0) AS total
+        FROM receipts
+        WHERE user_id = ?
+        GROUP BY payment_method
+        ORDER BY total DESC
+        """,
+        (user_id,)
+    ).fetchall()
+
+    # -------------------------
+    # TOP PRODUCTS
+    # -------------------------
+
+    top_products = conn.execute(
+        """
+        SELECT
+            item,
+            SUM(quantity) AS quantity,
+            SUM(total) AS sales
+        FROM receipts
+        WHERE user_id = ?
+        GROUP BY item
+        ORDER BY sales DESC
+        LIMIT 10
+        """,
+        (user_id,)
+    ).fetchall()
+
+    # -------------------------
+    # RECENT TRANSACTIONS
+    # -------------------------
+
     transactions = conn.execute(
         """
         SELECT *
         FROM transactions
         WHERE user_id = ?
         ORDER BY id DESC
+        LIMIT 50
         """,
         (user_id,)
     ).fetchall()
 
     conn.close()
+
+    # -------------------------
+    # PROFIT
+    # -------------------------
 
     profit = sales - expenses
 
@@ -857,9 +923,11 @@ def reports():
         sales=sales,
         expenses=expenses,
         profit=profit,
+        receipts_count=receipts_count,
+        payment_methods=payment_methods,
+        top_products=top_products,
         transactions=transactions
     )
-
 
 # =========================
 # START DATABASE
