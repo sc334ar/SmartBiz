@@ -33,8 +33,7 @@ def create_database():
             type TEXT NOT NULL,
             amount REAL NOT NULL,
             description TEXT,
-            date TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            date TEXT NOT NULL
         )
     """)
 
@@ -49,8 +48,7 @@ def create_database():
             total REAL NOT NULL,
             payment_method TEXT NOT NULL,
             date TEXT NOT NULL,
-            profit REAL NOT NULL DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            profit REAL NOT NULL DEFAULT 0
         )
     """)
 
@@ -64,8 +62,7 @@ def create_database():
             bank TEXT,
             due_date TEXT,
             status TEXT NOT NULL DEFAULT 'Pending',
-            date TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            date TEXT NOT NULL
         )
     """)
 
@@ -78,8 +75,7 @@ def create_database():
             date TEXT NOT NULL,
             due_date TEXT,
             total REAL NOT NULL DEFAULT 0,
-            status TEXT NOT NULL DEFAULT 'Unpaid',
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            status TEXT NOT NULL DEFAULT 'Unpaid'
         )
     """)
 
@@ -90,8 +86,7 @@ def create_database():
             item TEXT NOT NULL,
             quantity INTEGER NOT NULL,
             price REAL NOT NULL,
-            total REAL NOT NULL,
-            FOREIGN KEY (invoice_id) REFERENCES invoices(id)
+            total REAL NOT NULL
         )
     """)
 
@@ -104,12 +99,11 @@ def create_database():
             selling_price REAL NOT NULL,
             stock INTEGER NOT NULL DEFAULT 0,
             low_stock_level INTEGER NOT NULL DEFAULT 5,
-            date_added TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            date_added TEXT NOT NULL
         )
     """)
 
-    # Upgrade older databases that don't yet have the profit column
+    # Add profit column to older databases if necessary
     columns = conn.execute("PRAGMA table_info(receipts)").fetchall()
     column_names = [column["name"] for column in columns]
 
@@ -123,7 +117,9 @@ def create_database():
     conn.close()
 
 
-# ---------------- HOME ----------------
+# =========================
+# HOME
+# =========================
 
 @app.route("/")
 def home():
@@ -133,11 +129,14 @@ def home():
     return redirect(url_for("login"))
 
 
-# ---------------- REGISTER ----------------
+# =========================
+# REGISTER
+# =========================
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
 
@@ -169,24 +168,31 @@ def register():
     return render_template("register.html")
 
 
-# ---------------- LOGIN ----------------
+# =========================
+# LOGIN
+# =========================
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
 
         conn = get_db()
 
         user = conn.execute("""
-            SELECT * FROM users
+            SELECT *
+            FROM users
             WHERE username = ?
         """, (username,)).fetchone()
 
         conn.close()
 
-        if user and check_password_hash(user["password"], password):
+        if user and check_password_hash(
+            user["password"],
+            password
+        ):
             session["user_id"] = user["id"]
             session["username"] = user["username"]
 
@@ -197,7 +203,9 @@ def login():
     return render_template("login.html")
 
 
-# ---------------- LOGOUT ----------------
+# =========================
+# LOGOUT
+# =========================
 
 @app.route("/logout")
 def logout():
@@ -205,10 +213,13 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ---------------- DASHBOARD ----------------
+# =========================
+# DASHBOARD
+# =========================
 
 @app.route("/dashboard")
 def dashboard():
+
     if "user_id" not in session:
         return redirect(url_for("login"))
 
@@ -278,28 +289,35 @@ def dashboard():
     )
 
 
-# ---------------- RECEIPTS ----------------
+# =========================
+# RECEIPTS
+# =========================
 
 @app.route("/receipt", methods=["GET", "POST"])
 def receipt():
+
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
+
     conn = get_db()
 
     if request.method == "POST":
+
         item = request.form.get("item", "").strip()
-        quantity_text = request.form.get("quantity", "0")
+
+        try:
+            quantity = int(
+                request.form.get("quantity", 0)
+            )
+        except ValueError:
+            quantity = 0
+
         payment_method = request.form.get(
             "payment_method",
             "Cash"
         )
-
-        try:
-            quantity = int(quantity_text)
-        except ValueError:
-            quantity = 0
 
         if not item or quantity <= 0:
             conn.close()
@@ -329,7 +347,10 @@ def receipt():
         selling_price = product["selling_price"]
 
         total = selling_price * quantity
-        profit = (selling_price - buying_price) * quantity
+
+        profit = (
+            selling_price - buying_price
+        ) * quantity
 
         receipt_count = conn.execute("""
             SELECT COUNT(*) AS total
@@ -339,11 +360,12 @@ def receipt():
 
         receipt_number = f"REC-{receipt_count + 1:05d}"
 
-        date_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date_now = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         conn.execute("""
-            INSERT INTO receipts
-            (
+            INSERT INTO receipts (
                 user_id,
                 receipt_number,
                 item,
@@ -368,8 +390,7 @@ def receipt():
         ))
 
         conn.execute("""
-            INSERT INTO transactions
-            (
+            INSERT INTO transactions (
                 user_id,
                 type,
                 amount,
@@ -389,7 +410,10 @@ def receipt():
             UPDATE products
             SET stock = stock - ?
             WHERE id = ?
-        """, (quantity, product["id"]))
+        """, (
+            quantity,
+            product["id"]
+        ))
 
         conn.commit()
         conn.close()
@@ -422,20 +446,29 @@ def receipt():
     )
 
 
-# ---------------- EXPENSES ----------------
+# =========================
+# EXPENSES
+# =========================
 
 @app.route("/expenses", methods=["GET", "POST"])
 def expenses():
+
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
 
     if request.method == "POST":
-        description = request.form.get("description", "").strip()
+
+        description = request.form.get(
+            "description",
+            ""
+        ).strip()
 
         try:
-            amount = float(request.form.get("amount", 0))
+            amount = float(
+                request.form.get("amount", 0)
+            )
         except ValueError:
             amount = 0
 
@@ -446,8 +479,7 @@ def expenses():
         conn = get_db()
 
         conn.execute("""
-            INSERT INTO transactions
-            (
+            INSERT INTO transactions (
                 user_id,
                 type,
                 amount,
@@ -460,13 +492,16 @@ def expenses():
             "expense",
             amount,
             description,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
         ))
 
         conn.commit()
         conn.close()
 
         flash("Expense saved successfully.")
+
         return redirect(url_for("expenses"))
 
     conn = get_db()
@@ -487,36 +522,65 @@ def expenses():
     )
 
 
-# ---------------- INVENTORY ----------------
+# =========================
+# INVENTORY
+# =========================
 
 @app.route("/inventory", methods=["GET", "POST"])
 def inventory():
+
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
+
     conn = get_db()
 
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
+
+        name = request.form.get(
+            "name",
+            ""
+        ).strip()
 
         try:
             buying_price = float(
-                request.form.get("buying_price", 0)
+                request.form.get(
+                    "buying_price",
+                    0
+                )
             )
+
             selling_price = float(
-                request.form.get("selling_price", 0)
+                request.form.get(
+                    "selling_price",
+                    0
+                )
             )
+
             stock = int(
-                request.form.get("stock", 0)
+                request.form.get(
+                    "stock",
+                    0
+                )
             )
+
             low_stock_level = int(
-                request.form.get("low_stock_level", 5)
+                request.form.get(
+                    "low_stock_level",
+                    5
+                )
             )
+
         except ValueError:
+
             conn.close()
+
             flash("Enter valid numbers.")
-            return redirect(url_for("inventory"))
+
+            return redirect(
+                url_for("inventory")
+            )
 
         if (
             not name
@@ -524,13 +588,19 @@ def inventory():
             or selling_price < 0
             or stock < 0
         ):
+
             conn.close()
-            flash("Please enter valid product information.")
-            return redirect(url_for("inventory"))
+
+            flash(
+                "Please enter valid product information."
+            )
+
+            return redirect(
+                url_for("inventory")
+            )
 
         conn.execute("""
-            INSERT INTO products
-            (
+            INSERT INTO products (
                 user_id,
                 name,
                 buying_price,
@@ -547,14 +617,21 @@ def inventory():
             selling_price,
             stock,
             low_stock_level,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
         ))
 
         conn.commit()
         conn.close()
 
-        flash("Product added successfully.")
-        return redirect(url_for("inventory"))
+        flash(
+            "Product added successfully."
+        )
+
+        return redirect(
+            url_for("inventory")
+        )
 
     products = conn.execute("""
         SELECT *
@@ -571,10 +648,13 @@ def inventory():
     )
 
 
-# ---------------- REPORTS ----------------
+# =========================
+# REPORTS
+# =========================
 
 @app.route("/reports")
 def reports():
+
     if "user_id" not in session:
         return redirect(url_for("login"))
 
@@ -601,192 +681,4 @@ def reports():
         WHERE user_id = ?
     """, (user_id,)).fetchone()
 
-    receipts_count_row = conn.execute("""
-        SELECT COUNT(*) AS total
-        FROM receipts
-        WHERE user_id = ?
-    """, (user_id,)).fetchone()
-
-    payment_methods = conn.execute("""
-        SELECT
-            payment_method,
-            COALESCE(SUM(total), 0) AS total
-        FROM receipts
-        WHERE user_id = ?
-        GROUP BY payment_method
-        ORDER BY total DESC
-    """, (user_id,)).fetchall()
-
-    top_products = conn.execute("""
-        SELECT
-            item,
-            SUM(quantity) AS quantity,
-            SUM(total) AS sales,
-            SUM(profit) AS profit
-        FROM receipts
-        WHERE user_id = ?
-        GROUP BY item
-        ORDER BY sales DESC
-        LIMIT 10
-    """, (user_id,)).fetchall()
-
-    recent_transactions = conn.execute("""
-        SELECT *
-        FROM transactions
-        WHERE user_id = ?
-        ORDER BY id DESC
-        LIMIT 50
-    """, (user_id,)).fetchall()
-
-    conn.close()
-
-    sales = sales_row["total"]
-    expenses_total = expenses_row["total"]
-    product_profit = product_profit_row["total"]
-    receipts_count = receipts_count_row["total"]
-
-    profit = sales - expenses_total
-
-    return render_template(
-        "reports.html",
-        sales=sales,
-        expenses=expenses_total,
-        profit=profit,
-        product_profit=product_profit,
-        receipts_count=receipts_count,
-        payment_methods=payment_methods,
-        top_products=top_products,
-        recent_transactions=recent_transactions
-    )
-
-
-# ---------------- CHEQUES ----------------
-
-@app.route("/cheques", methods=["GET", "POST"])
-def cheques():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    user_id = session["user_id"]
-    conn = get_db()
-
-    if request.method == "POST":
-        cheque_number = request.form.get(
-            "cheque_number", ""
-        ).strip()
-
-        customer = request.form.get(
-            "customer", ""
-        ).strip()
-
-        bank = request.form.get(
-            "bank", ""
-        ).strip()
-
-        due_date = request.form.get(
-            "due_date", ""
-        ).strip()
-
-        status = request.form.get(
-            "status",
-            "Pending"
-        )
-
-        try:
-            amount = float(
-                request.form.get("amount", 0)
-            )
-        except ValueError:
-            amount = 0
-
-        if not cheque_number or amount <= 0:
-            conn.close()
-            flash("Enter valid cheque information.")
-            return redirect(url_for("cheques"))
-
-        conn.execute("""
-            INSERT INTO cheques
-            (
-                user_id,
-                cheque_number,
-                customer,
-                amount,
-                bank,
-                due_date,
-                status,
-                date
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            user_id,
-            cheque_number,
-            customer,
-            amount,
-            bank,
-            due_date,
-            status,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ))
-
-        conn.commit()
-
-    cheques_list = conn.execute("""
-        SELECT *
-        FROM cheques
-        WHERE user_id = ?
-        ORDER BY id DESC
-    """, (user_id,)).fetchall()
-
-    conn.close()
-
-    return render_template(
-        "cheques.html",
-        cheques=cheques_list
-    )
-
-
-# ---------------- INVOICES ----------------
-
-@app.route("/invoices", methods=["GET", "POST"])
-def invoices():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
-    user_id = session["user_id"]
-    conn = get_db()
-
-    if request.method == "POST":
-        customer = request.form.get(
-            "customer", ""
-        ).strip()
-
-        due_date = request.form.get(
-            "due_date", ""
-        ).strip()
-
-        items = request.form.getlist("item")
-        quantities = request.form.getlist("quantity")
-        prices = request.form.getlist("price")
-
-        if not customer:
-            conn.close()
-            flash("Enter customer name.")
-            return redirect(url_for("invoices"))
-
-        invoice_count = conn.execute("""
-            SELECT COUNT(*) AS total
-            FROM invoices
-            WHERE user_id = ?
-        """, (user_id,)).fetchone()["total"]
-
-        invoice_number = f"INV-{invoice_count + 1:05d}"
-
-        date_now = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
-
-        invoice_items = []
-        grand_total = 0
-
-        for i in range(len(items)):
-       
+   
