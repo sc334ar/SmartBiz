@@ -46,14 +46,17 @@
 
         </select>
 
-        <input
-            type="number"
-            name="quantity"
-            id="quantity"
-            placeholder="Quantity"
-            min="1"
-            required
-        >
+<label for="customer">Customer</label>
+
+<select name="customer" id="customer" required>
+    <option value="">-- Select Customer --</option>
+
+    {% for customer in customers %}
+        <option value="{{ customer['name'] }}">
+            {{ customer['name'] }}
+        </option>
+    {% endfor %}
+</select>
 
         <input
             type="number"
