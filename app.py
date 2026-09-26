@@ -488,22 +488,31 @@ def receipt():
             date=date
         )
 
-    products = conn.execute(
-        """
-        SELECT *
-        FROM products
-        WHERE user_id = ?
-        ORDER BY name ASC
-        """,
-        (session["user_id"],)
-    ).fetchall()
+    products = conn.execute("""
+    SELECT *
+    FROM products
+    WHERE user_id = ?
+    ORDER BY name ASC
+    """,
+    (session["user_id"],)
+).fetchall()
 
-    conn.close()
+customers = conn.execute("""
+    SELECT *
+    FROM customers
+    WHERE user_id = ?
+    ORDER BY name ASC
+    """,
+    (session["user_id"],)
+).fetchall()
 
-    return render_template(
-        "receipt.html",
-        products=products
-    )
+conn.close()
+
+return render_template(
+    "receipt.html",
+    products=products,
+    customers=customers
+)
 
 
 # =========================
