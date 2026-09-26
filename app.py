@@ -940,7 +940,62 @@ def reports():
         top_products=top_products,
         transactions=transactions
     )
+    
+@app.route("/customers", methods=["GET", "POST"])
+def customers():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
+    conn = get_db()
+
+    if request.method == "POST":
+        name = request.form["name"]
+        phone = request.form["phone"]
+        email = request.form["email"]
+        address = request.form["address"]
+
+        date_added = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        conn.execute("""
+            INSERT INTO customers
+            (
+                user_id,
+                name,
+                phone,
+                email,
+                address,
+                date_added
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                name,
+                phone,
+                email,
+                address,
+                date_added
+            )
+        )
+
+        conn.commit()
+
+    customers_list = conn.execute("""
+        SELECT *
+        FROM customers
+        WHERE user_id = ?
+        ORDER BY id DESC
+        """,
+        (session["user_id"],)
+    ).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "customers.html",
+        customers=customers_list
+    )
+    
 # =========================
 # START DATABASE
 # =========================
