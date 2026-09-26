@@ -8,6 +8,67 @@
 
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .report-card {
+            padding: 20px;
+            border-radius: 12px;
+            background: #f5f5f5;
+            text-align: center;
+        }
+
+        .report-card h3 {
+            margin-bottom: 10px;
+        }
+
+        .report-card p {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .chart-box {
+            margin: 25px 0;
+            padding: 20px;
+            border-radius: 12px;
+            background: #f5f5f5;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+
+        @media (max-width: 600px) {
+            .chart-container {
+                height: 250px;
+            }
+
+            table {
+                font-size: 13px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -22,48 +83,108 @@
 
     <hr>
 
-    <h2>Financial Summary</h2>
+    <h2>Financial Overview</h2>
 
-    <div class="card">
-        <h3>Total Sales</h3>
-        <p>KSh {{ "%.2f"|format(sales) }}</p>
+    <div class="report-grid">
+
+        <div class="report-card">
+            <h3>💰 Sales</h3>
+            <p>KSh {{ "%.2f"|format(sales) }}</p>
+        </div>
+
+        <div class="report-card">
+            <h3>💸 Expenses</h3>
+            <p>KSh {{ "%.2f"|format(expenses) }}</p>
+        </div>
+
+        <div class="report-card">
+            <h3>📈 Profit</h3>
+            <p>KSh {{ "%.2f"|format(profit) }}</p>
+        </div>
+
+        <div class="report-card">
+            <h3>🧾 Receipts</h3>
+            <p>{{ receipts_count }}</p>
+        </div>
+
     </div>
 
-    <div class="card">
-        <h3>Total Expenses</h3>
-        <p>KSh {{ "%.2f"|format(expenses) }}</p>
+    <div class="chart-box">
+
+        <h2>📊 Sales vs Expenses</h2>
+
+        <div class="chart-container">
+            <canvas id="financialChart"></canvas>
+        </div>
+
     </div>
 
-    <div class="card">
-        <h3>Profit</h3>
-        <p>KSh {{ "%.2f"|format(profit) }}</p>
+    <div class="chart-box">
+
+        <h2>💳 Payment Methods</h2>
+
+        {% if payment_methods %}
+
+        <div class="chart-container">
+            <canvas id="paymentChart"></canvas>
+        </div>
+
+        {% else %}
+
+        <p>No payment data available yet.</p>
+
+        {% endif %}
+
     </div>
 
-    <div class="card">
-        <h3>Total Receipts</h3>
-        <p>{{ receipts_count }}</p>
+    <div class="chart-box">
+
+        <h2>🏆 Top Products</h2>
+
+        {% if top_products %}
+
+        <div class="chart-container">
+            <canvas id="productChart"></canvas>
+        </div>
+
+        {% else %}
+
+        <p>No product sales available yet.</p>
+
+        {% endif %}
+
     </div>
 
     <hr>
 
-    <h2>💳 Sales by Payment Method</h2>
+    <h2>💳 Payment Method Details</h2>
 
     {% if payment_methods %}
-        <table border="1" cellpadding="8">
-            <tr>
-                <th>Payment Method</th>
-                <th>Total Sales</th>
-            </tr>
 
-            {% for payment in payment_methods %}
-            <tr>
-                <td>{{ payment["payment_method"] }}</td>
-                <td>KSh {{ "%.2f"|format(payment["total"]) }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+    <table>
+
+        <tr>
+            <th>Payment Method</th>
+            <th>Total Sales</th>
+        </tr>
+
+        {% for payment in payment_methods %}
+
+        <tr>
+            <td>{{ payment["payment_method"] }}</td>
+            <td>
+                KSh {{ "%.2f"|format(payment["total"]) }}
+            </td>
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
     {% else %}
-        <p>No payment data available yet.</p>
+
+    <p>No payment data available yet.</p>
+
     {% endif %}
 
     <hr>
@@ -71,23 +192,33 @@
     <h2>🏆 Top Products</h2>
 
     {% if top_products %}
-        <table border="1" cellpadding="8">
-            <tr>
-                <th>Product</th>
-                <th>Quantity Sold</th>
-                <th>Sales</th>
-            </tr>
 
-            {% for product in top_products %}
-            <tr>
-                <td>{{ product["item"] }}</td>
-                <td>{{ product["quantity"] }}</td>
-                <td>KSh {{ "%.2f"|format(product["sales"]) }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+    <table>
+
+        <tr>
+            <th>Product</th>
+            <th>Quantity Sold</th>
+            <th>Sales</th>
+        </tr>
+
+        {% for product in top_products %}
+
+        <tr>
+            <td>{{ product["item"] }}</td>
+            <td>{{ product["quantity"] }}</td>
+            <td>
+                KSh {{ "%.2f"|format(product["sales"]) }}
+            </td>
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
     {% else %}
-        <p>No product sales available yet.</p>
+
+    <p>No product sales available yet.</p>
+
     {% endif %}
 
     <hr>
@@ -95,38 +226,161 @@
     <h2>🧾 Recent Transactions</h2>
 
     {% if transactions %}
-        <table border="1" cellpadding="8">
-            <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Payment</th>
-            </tr>
 
-            {% for transaction in transactions %}
-            <tr>
-                <td>{{ transaction["date"] }}</td>
-                <td>{{ transaction["transaction_type"] }}</td>
-                <td>{{ transaction["description"] }}</td>
-                <td>
-                    KSh {{ "%.2f"|format(transaction["amount"]) }}
-                </td>
-                <td>{{ transaction["payment_method"] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+    <table>
+
+        <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Payment</th>
+        </tr>
+
+        {% for transaction in transactions %}
+
+        <tr>
+            <td>{{ transaction["date"] }}</td>
+
+            <td>
+                {{ transaction["transaction_type"] }}
+            </td>
+
+            <td>
+                {{ transaction["description"] }}
+            </td>
+
+            <td>
+                KSh {{ "%.2f"|format(transaction["amount"]) }}
+            </td>
+
+            <td>
+                {{ transaction["payment_method"] }}
+            </td>
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
     {% else %}
-        <p>No transactions available yet.</p>
+
+    <p>No transactions available yet.</p>
+
     {% endif %}
 
     <hr>
 
     <p>
-        <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+        <a href="{{ url_for('dashboard') }}">
+            ← Back to Dashboard
+        </a>
     </p>
 
 </div>
 
+<script>
+
+const financialChart =
+    document.getElementById("financialChart");
+
+new Chart(financialChart, {
+    type: "bar",
+
+    data: {
+        labels: ["Sales", "Expenses", "Profit"],
+
+        datasets: [{
+            label: "KSh",
+
+            data: [
+                {{ sales }},
+                {{ expenses }},
+                {{ profit }}
+            ]
+        }]
+    },
+
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+});
+
+{% if payment_methods %}
+
+const paymentChart =
+    document.getElementById("paymentChart");
+
+new Chart(paymentChart, {
+
+    type: "pie",
+
+    data: {
+
+        labels: [
+            {% for payment in payment_methods %}
+                "{{ payment['payment_method'] }}",
+            {% endfor %}
+        ],
+
+        datasets: [{
+            data: [
+                {% for payment in payment_methods %}
+                    {{ payment['total'] }},
+                {% endfor %}
+            ]
+        }]
+    },
+
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+
+});
+
+{% endif %}
+
+
+{% if top_products %}
+
+const productChart =
+    document.getElementById("productChart");
+
+new Chart(productChart, {
+
+    type: "bar",
+
+    data: {
+
+        labels: [
+            {% for product in top_products %}
+                "{{ product['item'] }}",
+            {% endfor %}
+        ],
+
+        datasets: [{
+            label: "Sales (KSh)",
+
+            data: [
+                {% for product in top_products %}
+                    {{ product['sales'] }},
+                {% endfor %}
+            ]
+        }]
+    },
+
+    options: {
+        responsive: true,
+        maintainAspectRatio: false
+    }
+
+});
+
+{% endif %}
+
+</script>
+
 </body>
-</html>
+            </html>
