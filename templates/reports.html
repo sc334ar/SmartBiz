@@ -4,489 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>SmartBiz Reports</title>
+    <title>SmartBiz - Reports</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f4f7fb;
-            color: #222;
-        }
-
-        .container {
-            width: 95%;
-            max-width: 1200px;
-            margin: auto;
-            padding: 25px 0 40px;
-        }
-
-        h1 {
-            margin-bottom: 5px;
-        }
-
-        .subtitle {
-            color: #666;
-            margin-top: 0;
-            margin-bottom: 25px;
-        }
-
-        .back {
-            display: inline-block;
-            text-decoration: none;
-            background: #222;
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 14px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-        }
-
-        .card h3 {
-            margin-top: 0;
-            color: #555;
-            font-size: 15px;
-        }
-
-        .amount {
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .charts {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-
-        .chart-card {
-            background: white;
-            padding: 20px;
-            border-radius: 14px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-        }
-
-        .chart-container {
-            position: relative;
-            height: 330px;
-        }
-
-        .section {
-            background: white;
-            padding: 20px;
-            border-radius: 14px;
-            margin-bottom: 25px;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-            text-align: left;
-        }
-
-        th {
-            background: #f5f6f8;
-        }
-
-        .profit {
-            font-weight: bold;
-        }
-
-        .positive {
-            color: #16803a;
-        }
-
-        .negative {
-            color: #c62828;
-        }
-
-        .empty {
-            text-align: center;
-            color: #777;
-            padding: 25px;
-        }
-
-        @media (max-width: 900px) {
-            .cards {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .charts {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 550px) {
-            .container {
-                width: 92%;
-            }
-
-            .cards {
-                grid-template-columns: 1fr;
-            }
-
-            .amount {
-                font-size: 22px;
-            }
-
-            th,
-            td {
-                padding: 9px;
-                font-size: 13px;
-            }
-        }
-    </style>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
 <div class="container">
 
-    <a href="{{ url_for('dashboard') }}" class="back">
-        ← Back to Dashboard
-    </a>
-
     <h1>📊 SmartBiz Reports</h1>
 
-    <p class="subtitle">
-        Business performance and sales analytics
+    <p>
+        <a href="{{ url_for('dashboard') }}">← Dashboard</a>
     </p>
 
+    <hr>
 
-    <!-- SUMMARY CARDS -->
+    <h2>Financial Summary</h2>
 
-    <div class="cards">
-
-        <div class="card">
-            <h3>💰 Sales</h3>
-            <div class="amount">
-                KSh {{ "%.2f"|format(sales) }}
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>💸 Expenses</h3>
-            <div class="amount">
-                KSh {{ "%.2f"|format(expenses) }}
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>📈 Net Profit</h3>
-
-            <div class="amount
-                {% if profit >= 0 %}
-                    positive
-                {% else %}
-                    negative
-                {% endif %}
-            ">
-                KSh {{ "%.2f"|format(profit) }}
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>💵 Product Profit</h3>
-            <div class="amount">
-                KSh {{ "%.2f"|format(product_profit) }}
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>🧾 Receipts</h3>
-            <div class="amount">
-                {{ receipts_count }}
-            </div>
-        </div>
-
+    <div class="card">
+        <h3>Total Sales</h3>
+        <p>KSh {{ "%.2f"|format(sales) }}</p>
     </div>
 
-
-    <!-- CHARTS -->
-
-    <div class="charts">
-
-        <div class="chart-card">
-
-            <h2>Sales vs Expenses</h2>
-
-            <div class="chart-container">
-                <canvas id="salesExpensesChart"></canvas>
-            </div>
-
-        </div>
-
-
-        <div class="chart-card">
-
-            <h2>Payment Methods</h2>
-
-            <div class="chart-container">
-                <canvas id="paymentChart"></canvas>
-            </div>
-
-        </div>
-
+    <div class="card">
+        <h3>Total Expenses</h3>
+        <p>KSh {{ "%.2f"|format(expenses) }}</p>
     </div>
 
+    <div class="card">
+        <h3>Profit</h3>
+        <p>KSh {{ "%.2f"|format(profit) }}</p>
+    </div>
 
-    <!-- TOP PRODUCTS -->
+    <div class="card">
+        <h3>Total Receipts</h3>
+        <p>{{ receipts_count }}</p>
+    </div>
 
-    <div class="section">
+    <hr>
 
-        <h2>🏆 Best-Selling Products</h2>
+    <h2>💳 Sales by Payment Method</h2>
 
-        {% if top_products %}
+    {% if payment_methods %}
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>Payment Method</th>
+                <th>Total Sales</th>
+            </tr>
 
-        <table>
+            {% for payment in payment_methods %}
+            <tr>
+                <td>{{ payment["payment_method"] }}</td>
+                <td>KSh {{ "%.2f"|format(payment["total"]) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No payment data available yet.</p>
+    {% endif %}
 
-            <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Sales</th>
-                    <th>Profit</th>
-                </tr>
-            </thead>
+    <hr>
 
-            <tbody>
+    <h2>🏆 Top Products</h2>
+
+    {% if top_products %}
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>Product</th>
+                <th>Quantity Sold</th>
+                <th>Sales</th>
+            </tr>
 
             {% for product in top_products %}
-
-                <tr>
-
-                    <td>
-                        {{ product["item"] }}
-                    </td>
-
-                    <td>
-                        {{ product["quantity"] }}
-                    </td>
-
-                    <td>
-                        KSh {{ "%.2f"|format(product["sales"]) }}
-                    </td>
-
-                    <td class="profit
-                        {% if product['profit'] >= 0 %}
-                            positive
-                        {% else %}
-                            negative
-                        {% endif %}
-                    ">
-                        KSh {{ "%.2f"|format(product["profit"]) }}
-                    </td>
-
-                </tr>
-
+            <tr>
+                <td>{{ product["item"] }}</td>
+                <td>{{ product["quantity"] }}</td>
+                <td>KSh {{ "%.2f"|format(product["sales"]) }}</td>
+            </tr>
             {% endfor %}
-
-            </tbody>
-
         </table>
+    {% else %}
+        <p>No product sales available yet.</p>
+    {% endif %}
 
-        {% else %}
+    <hr>
 
-        <div class="empty">
-            No product sales recorded yet.
-        </div>
+    <h2>🧾 Recent Transactions</h2>
 
-        {% endif %}
+    {% if transactions %}
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Payment</th>
+            </tr>
 
-    </div>
-
-
-    <!-- RECENT TRANSACTIONS -->
-
-    <div class="section">
-
-        <h2>🧾 Recent Transactions</h2>
-
-        {% if recent_transactions %}
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Description</th>
-                    <th>Amount</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            {% for transaction in recent_transactions %}
-
-                <tr>
-
-                    <td>
-                        {{ transaction["date"] }}
-                    </td>
-
-                    <td>
-                        {{ transaction["type"] }}
-                    </td>
-
-                    <td>
-                        {{ transaction["description"] }}
-                    </td>
-
-                    <td>
-                        KSh {{ "%.2f"|format(transaction["amount"]) }}
-                    </td>
-
-                </tr>
-
+            {% for transaction in transactions %}
+            <tr>
+                <td>{{ transaction["date"] }}</td>
+                <td>{{ transaction["transaction_type"] }}</td>
+                <td>{{ transaction["description"] }}</td>
+                <td>
+                    KSh {{ "%.2f"|format(transaction["amount"]) }}
+                </td>
+                <td>{{ transaction["payment_method"] }}</td>
+            </tr>
             {% endfor %}
-
-            </tbody>
-
         </table>
+    {% else %}
+        <p>No transactions available yet.</p>
+    {% endif %}
 
-        {% else %}
+    <hr>
 
-        <div class="empty">
-            No transactions recorded yet.
-        </div>
-
-        {% endif %}
-
-    </div>
+    <p>
+        <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+    </p>
 
 </div>
 
-
-<script>
-
-    // ---------------- SALES VS EXPENSES ----------------
-
-    const salesExpensesCanvas =
-        document.getElementById(
-            "salesExpensesChart"
-        );
-
-    new Chart(
-        salesExpensesCanvas,
-        {
-            type: "bar",
-
-            data: {
-                labels: [
-                    "Sales",
-                    "Expenses",
-                    "Product Profit"
-                ],
-
-                datasets: [
-                    {
-                        label: "KSh",
-
-                        data: [
-                            {{ sales|default(0) }},
-                            {{ expenses|default(0) }},
-                            {{ product_profit|default(0) }}
-                        ]
-                    }
-                ]
-            },
-
-            options: {
-                responsive: true,
-
-                maintainAspectRatio: false,
-
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        }
-    );
-
-
-    // ---------------- PAYMENT METHODS ----------------
-
-    const paymentCanvas =
-        document.getElementById(
-            "paymentChart"
-        );
-
-    new Chart(
-        paymentCanvas,
-        {
-            type: "doughnut",
-
-            data: {
-                labels: [
-                    {% for method in payment_methods %}
-                        "{{ method['payment_method']|replace('"', '\\"') }}"{% if not loop.last %},{% endif %}
-                    {% endfor %}
-                ],
-
-                datasets: [
-                    {
-                        data: [
-                            {% for method in payment_methods %}
-                                {{ method['total']|default(0) }}{% if not loop.last %},{% endif %}
-                            {% endfor %}
-                        ]
-                    }
-                ]
-            },
-
-            options: {
-                responsive: true,
-
-                maintainAspectRatio: false,
-
-                plugins: {
-                    legend: {
-                        position: "bottom"
-                    }
-                }
-            }
-        }
-    );
-
-</script>
-
 </body>
-                </html>
+</html>
