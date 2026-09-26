@@ -1,37 +1,41 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Create Receipt - SmartBiz</title>
 
-    <title>Create Receipt - SmartBiz</title>
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}">
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
-</head>
+</head><body><div class="container"><h1>🧾 Create Receipt</h1>
 
-<body>
+<form method="POST">
 
-<div class="container">
+    <!-- Customer -->
+    <label for="customer">Customer</label>
 
-    <h1>🧾 Create Receipt</h1>
+    <select name="customer" id="customer" required>
+        <option value="">-- Select Customer --</option>
 
-    <form method="POST">
+        {% for customer in customers %}
+            <option value="{{ customer['name'] }}">
+                {{ customer['name'] }}
+            </option>
+        {% endfor %}
 
-        <input
-            type="text"
-            name="customer"
-            placeholder="Customer Name"
+    </select>
+
+
+    <!-- Product -->
+    <label for="product">Product</label>
+
+    <select name="item"
+            id="product"
             required
-        >
+            onchange="updatePrice()">
 
-        <label>Product</label>
+        <option value="">-- Select Product --</option>
 
-        <select name="item" id="product" required onchange="updatePrice()">
-
-            <option value="">Select Product</option>
-
-            {% for product in products %}
+        {% for product in products %}
 
             <option
                 value="{{ product['name'] }}"
@@ -42,75 +46,93 @@
                 — Stock: {{ product['stock'] }}
             </option>
 
-            {% endfor %}
+        {% endfor %}
 
-        </select>
+    </select>
 
-<label for="customer">Customer</label>
 
-<select name="customer" id="customer" required>
-    <option value="">-- Select Customer --</option>
+    <!-- Quantity -->
+    <label for="quantity">Quantity</label>
 
-    {% for customer in customers %}
-        <option value="{{ customer['name'] }}">
-            {{ customer['name'] }}
+    <input
+        type="number"
+        name="quantity"
+        id="quantity"
+        placeholder="Quantity"
+        min="1"
+        value="1"
+        required
+        onchange="checkStock()"
+        oninput="checkStock()"
+    >
+
+
+    <!-- Price -->
+    <label for="price">Price per Item (KSh)</label>
+
+    <input
+        type="number"
+        name="price"
+        id="price"
+        placeholder="Price per Item (KSh)"
+        min="0"
+        step="0.01"
+        required
+        readonly
+    >
+
+
+    <!-- Stock message -->
+    <p id="stock-message"></p>
+
+
+    <!-- Payment method -->
+    <label for="payment_method">Payment Method</label>
+
+    <select name="payment_method"
+            id="payment_method"
+            required>
+
+        <option value="">
+            -- Select Payment Method --
         </option>
-    {% endfor %}
-</select>
 
-        <input
-            type="number"
-            name="price"
-            id="price"
-            placeholder="Price per Item (KSh)"
-            min="0"
-            step="0.01"
-            required
-            readonly
-        >
+        <option value="Cash">
+            Cash
+        </option>
 
-        <p id="stock-message"></p>
+        <option value="M-Pesa">
+            M-Pesa
+        </option>
 
-        <select name="payment_method" required>
+        <option value="Bank">
+            Bank
+        </option>
 
-            <option value="">
-                Payment Method
-            </option>
+        <option value="Cheque">
+            Cheque
+        </option>
 
-            <option value="Cash">
-                Cash
-            </option>
-
-            <option value="M-Pesa">
-                M-Pesa
-            </option>
-
-            <option value="Bank">
-                Bank
-            </option>
-
-            <option value="Cheque">
-                Cheque
-            </option>
-
-        </select>
-
-        <button type="submit">
-            Generate Receipt
-        </button>
-
-    </form>
-
-    <p>
-        <a href="{{ url_for('dashboard') }}">
-            ← Back to Dashboard
-        </a>
-    </p>
-
-</div>
+    </select>
 
 
-<script>
+    <button type="submit">
+        Generate Receipt
+    </button>
+
+</form>
+
+
+<p>
+    <a href="{{ url_for('dashboard') }}">
+        ← Back to Dashboard
+    </a>
+</p>
+
+</div><script>
+
+let currentStock = 0;
+
 
 function updatePrice() {
 
@@ -129,24 +151,49 @@ function updatePrice() {
     document.getElementById("price").value =
         price || "";
 
+    currentStock =
+        stock ? parseInt(stock) : 0;
+
+    checkStock();
+}
+
+
+function checkStock() {
+
+    const quantity =
+        parseInt(
+            document.getElementById("quantity").value
+        ) || 0;
+
     const message =
         document.getElementById("stock-message");
 
-    if (stock !== null) {
-
-        message.innerHTML =
-            "📦 Available stock: <strong>"
-            + stock +
-            "</strong>";
-
-    } else {
+    if (!document.getElementById("product").value) {
 
         message.innerHTML = "";
 
+        return;
+    }
+
+    if (quantity > currentStock) {
+
+        message.innerHTML =
+            "⚠️ Not enough stock. Available: <strong>"
+            + currentStock
+            + "</strong>";
+
+        message.style.color = "red";
+
+    } else {
+
+        message.innerHTML =
+            "📦 Available stock: <strong>"
+            + currentStock
+            + "</strong>";
+
+        message.style.color = "green";
     }
 }
 
-</script>
-
-</body>
+</script></body>
 </html>
