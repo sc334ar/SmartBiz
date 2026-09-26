@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SmartBiz - Customers</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>👥 Customer Management</h1>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">← Dashboard</a>
+    </p>
+
+    <hr>
+
+    <h2>Add Customer</h2>
+
+    <form method="POST">
+
+        <input
+            type="text"
+            name="name"
+            placeholder="Customer Name"
+            required
+        >
+
+        <input
+            type="text"
+            name="phone"
+            placeholder="Phone Number"
+        >
+
+        <input
+            type="email"
+            name="email"
+            placeholder="Email Address"
+        >
+
+        <input
+            type="text"
+            name="address"
+            placeholder="Address"
+        >
+
+        <button type="submit">
+            Add Customer
+        </button>
+
+    </form>
+
+    <hr>
+
+    <h2>Customer List</h2>
+
+    {% if customers %}
+
+    <table border="1" cellpadding="8">
+
+        <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Address</th>
+            <th>Date Added</th>
+        </tr>
+
+        {% for customer in customers %}
+
+        <tr>
+            <td>{{ customer["name"] }}</td>
+            <td>{{ customer["phone"] }}</td>
+            <td>{{ customer["email"] }}</td>
+            <td>{{ customer["address"] }}</td>
+            <td>{{ customer["date_added"] }}</td>
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+    {% else %}
+
+    <p>No customers added yet.</p>
+
+    {% endif %}
+
+    <hr>
+
+    <a href="{{ url_for('dashboard') }}">
+        ← Back to Dashboard
+    </a>
+
+</div>
+
+</body>
+                      </html>
