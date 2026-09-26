@@ -108,7 +108,19 @@ def create_database():
             date_added TEXT NOT NULL
         )
     """)
-
+    
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT,
+            email TEXT,
+            address TEXT,
+            date_added TEXT NOT NULL
+        )
+    """)
+    
     conn.commit()
     conn.close()
 
