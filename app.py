@@ -15,7 +15,7 @@ DATABASE = "smartbiz.db"
 # =========================
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect hi(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -309,7 +309,6 @@ def dashboard():
         low_stock=low_stock
     )
 
-
 # =========================
 # RECEIPTS
 # =========================
@@ -369,14 +368,20 @@ def receipt():
 
             <p>Product: <strong>{item}</strong></p>
 
-            <p>Available stock:
-            <strong>{available}</strong></p>
-
-            <p>Requested quantity:
-            <strong>{quantity}</strong></p>
+            <p>
+                Available stock:
+                <strong>{available}</strong>
+            </p>
 
             <p>
-                <a href="/receipt">← Back to Receipt</a>
+                Requested quantity:
+                <strong>{quantity}</strong>
+            </p>
+
+            <p>
+                <a href="/receipt">
+                    ← Back to Receipt
+                </a>
             </p>
             """
 
@@ -488,32 +493,41 @@ def receipt():
             date=date
         )
 
-    products = conn.execute("""
-    SELECT *
-    FROM products
-    WHERE user_id = ?
-    ORDER BY name ASC
-    """,
-    (session["user_id"],)
-).fetchall()
+    # =========================
+    # LOAD PRODUCTS
+    # =========================
 
-customers = conn.execute("""
-    SELECT *
-    FROM customers
-    WHERE user_id = ?
-    ORDER BY name ASC
-    """,
-    (session["user_id"],)
-).fetchall()
+    products = conn.execute(
+        """
+        SELECT *
+        FROM products
+        WHERE user_id = ?
+        ORDER BY name ASC
+        """,
+        (session["user_id"],)
+    ).fetchall()
 
-conn.close()
+    # =========================
+    # LOAD CUSTOMERS
+    # =========================
 
-return render_template(
-    "receipt.html",
-    products=products,
-    customers=customers
-)
+    customers = conn.execute(
+        """
+        SELECT *
+        FROM customers
+        WHERE user_id = ?
+        ORDER BY name ASC
+        """,
+        (session["user_id"],)
+    ).fetchall()
 
+    conn.close()
+
+    return render_template(
+        "receipt.html",
+        products=products,
+        customers=customers
+    )
 
 # =========================
 # EXPENSE
