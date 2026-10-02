@@ -23,22 +23,36 @@
 
     <form method="POST">
 
+        <!-- CUSTOMER -->
+
+        <label for="customer">
+            Customer Name
+        </label>
+
         <input
             type="text"
+            id="customer"
             name="customer"
             placeholder="Customer Name"
             required
         >
 
-        <label>Due Date</label>
+
+        <!-- DUE DATE -->
+
+        <label for="due_date">
+            Due Date
+        </label>
 
         <input
             type="date"
+            id="due_date"
             name="due_date"
             required
         >
 
-        <h3>Invoice Items</h3>
+
+        <h3>🛒 Invoice Items</h3>
 
         <div id="items">
 
@@ -49,6 +63,7 @@
                     name="item[]"
                     placeholder="Item or Service"
                     required
+                    oninput="calculateTotal()"
                 >
 
                 <input
@@ -56,7 +71,9 @@
                     name="quantity[]"
                     placeholder="Quantity"
                     min="1"
+                    value="1"
                     required
+                    oninput="calculateTotal()"
                 >
 
                 <input
@@ -66,11 +83,23 @@
                     min="0.01"
                     step="0.01"
                     required
+                    oninput="calculateTotal()"
                 >
+
+                <button
+                    type="button"
+                    onclick="removeItem(this)">
+
+                    🗑️ Remove
+
+                </button>
 
             </div>
 
         </div>
+
+
+        <!-- ADD ITEM -->
 
         <button
             type="button"
@@ -80,13 +109,29 @@
 
         </button>
 
+
+        <!-- TOTAL -->
+
+        <div class="invoice-total">
+
+            <h2>
+                Total:
+                KSh <span id="total">0.00</span>
+            </h2>
+
+        </div>
+
+
+        <!-- SUBMIT -->
+
         <button type="submit">
 
-            Generate Invoice
+            📄 Generate Invoice
 
         </button>
 
     </form>
+
 
     <p>
 
@@ -101,13 +146,20 @@
 
 <script>
 
+/* =========================
+   ADD ITEM
+========================= */
+
 function addItem() {
 
-    const items = document.getElementById("items");
+    const items =
+        document.getElementById("items");
 
-    const newItem = document.createElement("div");
+    const newItem =
+        document.createElement("div");
 
-    newItem.className = "invoice-item";
+    newItem.className =
+        "invoice-item";
 
     newItem.innerHTML = `
 
@@ -116,6 +168,7 @@ function addItem() {
             name="item[]"
             placeholder="Item or Service"
             required
+            oninput="calculateTotal()"
         >
 
         <input
@@ -123,7 +176,9 @@ function addItem() {
             name="quantity[]"
             placeholder="Quantity"
             min="1"
+            value="1"
             required
+            oninput="calculateTotal()"
         >
 
         <input
@@ -133,15 +188,86 @@ function addItem() {
             min="0.01"
             step="0.01"
             required
+            oninput="calculateTotal()"
         >
+
+        <button
+            type="button"
+            onclick="removeItem(this)">
+
+            🗑️ Remove
+
+        </button>
 
     `;
 
     items.appendChild(newItem);
+
+    calculateTotal();
+}
+
+
+/* =========================
+   REMOVE ITEM
+========================= */
+
+function removeItem(button) {
+
+    const items =
+        document.querySelectorAll(
+            ".invoice-item"
+        );
+
+    if (items.length <= 1) {
+
+        alert(
+            "An invoice must have at least one item."
+        );
+
+        return;
+    }
+
+    button.parentElement.remove();
+
+    calculateTotal();
+}
+
+
+/* =========================
+   CALCULATE TOTAL
+========================= */
+
+function calculateTotal() {
+
+    const quantities =
+        document.querySelectorAll(
+            'input[name="quantity[]"]'
+        );
+
+    const prices =
+        document.querySelectorAll(
+            'input[name="price[]"]'
+        );
+
+    let total = 0;
+
+    for (let i = 0; i < quantities.length; i++) {
+
+        const quantity =
+            parseFloat(quantities[i].value) || 0;
+
+        const price =
+            parseFloat(prices[i].value) || 0;
+
+        total += quantity * price;
+    }
+
+    document.getElementById("total").textContent =
+        total.toFixed(2);
 }
 
 </script>
 
 </body>
 
-                  </html>
+            </html>
