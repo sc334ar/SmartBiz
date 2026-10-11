@@ -1217,7 +1217,149 @@ def leon():
         top_products=top_products,
         insights=insights
 )
-    
+    # =========================
+# LEON CHAT
+# =========================
+
+@app.route("/leon/chat", methods=["POST"])
+def leon_chat():
+
+    if "user_id" not in session:
+        return {
+            "reply": "Please log in to use Leon."
+        }, 401
+
+    question = request.form.get(
+        "question", ""
+    ).strip().lower()
+
+    if not question:
+        return {
+            "reply": "Please type or speak a question."
+        }
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    sales = conn.execute("""
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'income'
+    """, (user_id,)).fetchone()[0]
+
+    expenses = conn.execute("""
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'expense'
+    """, (user_id,)).fetchone()[0]
+
+    low_stock = conn.execute("""
+        SELECT name, stock
+        FROM products
+        WHERE user_id = ?
+        AND stock <= low_stock_level
+        ORDER BY stock ASC
+    """, (user_id,)).fetchall()
+
+    top_product = conn.execute("""
+        SELECT item, SUM(quantity) AS quantity_sold
+        FROM receipts
+        WHERE user_id = ?
+        GROUP BY item
+        ORDER BY quantity_sold DESC
+        LIMIT 1
+    """, (user_id,)).fetchone()
+
+    conn.close()
+
+    profit = sales - expenses
+
+    # Leon understands common business questions.
+
+    if "sale" in question or "income" in question:
+        reply = (
+            f"Your recorded sales are "
+            f"KSh {sales:,.2f}."
+        )
+
+    elif (
+        "expense" in question
+        or "spent" in question
+        or "cost" in question
+    ):
+        reply = (
+            f"Your recorded expenses are "
+            f"KSh {expenses:,.2f}."
+        )
+
+    elif "profit" in question:
+        reply = (
+            f"Your sales-minus-expenses balance is "
+            f"KSh {profit:,.2f}. "
+            "This is not necessarily your final accounting profit."
+        )
+
+    elif (
+        "stock" in question
+        or "restock" in question
+        or "inventory" in question
+    ):
+        if low_stock:
+            names = ", ".join(
+                f"{p['name']} ({p['stock']} remaining)"
+                for p in low_stock
+            )
+
+            reply = (
+                "These products have reached their "
+                f"low-stock thresholds: {names}. "
+                "Please review your inventory."
+            )
+        else:
+            reply = (
+                "No products are currently at or below "
+                "their low-stock thresholds."
+            )
+
+    elif (
+        "best-selling" in question
+        or "best selling" in question
+        or "sells the most" in question
+        or "top product" in question
+    ):
+        if top_product:
+            reply = (
+                f"{top_product['item']} is currently your "
+                f"top product by recorded quantity sold, "
+                f"with {top_product['quantity_sold']} units."
+            )
+        else:
+            reply = (
+                "I don't have any recorded receipts yet. "
+                "Create receipts so I can analyse your sales."
+            )
+
+    elif (
+        "hello" in question
+        or "hi leon" in question
+        or question == "hi"
+    ):
+        reply = (
+            "Hello! I'm Leon, your SmartBiz business "
+            "assistant. Ask me about sales, expenses, "
+            "profit, or inventory."
+        )
+
+    else:
+        reply = (
+            "I'm still learning to answer that question. "
+            "Try asking about sales, expenses, profit, "
+            "best-selling products, or low stock."
+        )
+
+    return {"reply": reply}
 # =========================
 # START DATABASE
 # =========================
