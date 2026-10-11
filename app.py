@@ -772,54 +772,65 @@ def inventory():
         return redirect(url_for("login"))
 
     conn = get_db()
+    user_id = session["user_id"]
 
     if request.method == "POST":
 
-        name = request.form["name"]
-        sku = request.form["sku"]
-        buying_price = float(
-            request.form["buying_price"]
-        )
-        selling_price = float(
-            request.form["selling_price"]
-        )
-        stock = int(request.form["stock"])
-        low_stock_level = int(
-            request.form["low_stock_level"]
-        )
+        try:
+            name = request.form["name"].strip()
+            sku = request.form["sku"].strip()
+            buying_price = float(request.form["buying_price"])
+            selling_price = float(request.form["selling_price"])
+            stock = int(request.form["stock"])
+            low_stock_level = int(request.form["low_stock_level"])
 
-        date_added = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+            if not name:
+                raise ValueError("Product name is required.")
 
-        conn.execute(
-            """
-            INSERT INTO products
-            (
-                user_id,
-                name,
-                sku,
-                buying_price,
-                selling_price,
-                stock,
-                low_stock_level,
-                date_added
+            if buying_price < 0 or selling_price < 0:
+                raise ValueError("Prices cannot be negative.")
+
+            if stock < 0 or low_stock_level < 0:
+                raise ValueError("Stock values cannot be negative.")
+
+            date_added = datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                session["user_id"],
-                name,
-                sku,
-                buying_price,
-                selling_price,
-                stock,
-                low_stock_level,
-                date_added
-            )
-        )
 
-        conn.commit()
+            conn.execute(
+                """
+                INSERT INTO products (
+                    user_id, name, sku, buying_price,
+                    selling_price, stock, low_stock_level,
+                    date_added
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    name,
+                    sku,
+                    buying_price,
+                    selling_price,
+                    stock,
+                    low_stock_level,
+                    date_added
+                )
+            )
+
+            conn.commit()
+            conn.close()
+
+            return redirect(url_for("inventory"))
+
+        except (ValueError, KeyError) as error:
+            conn.close()
+
+            return (
+                f"Invalid product information: {error}. "
+                "Please go back and check your entries.",
+                400
+            )
 
     products = conn.execute(
         """
@@ -828,7 +839,7 @@ def inventory():
         WHERE user_id = ?
         ORDER BY id DESC
         """,
-        (session["user_id"],)
+        (user_id,)
     ).fetchall()
 
     conn.close()
@@ -839,6 +850,94 @@ def inventory():
     )
 
 
+# =========================
+# EDIT PRODUCT
+# =========================
+
+@app.route("/inventory/edit/<int:product_id>", methods=["GET", "POST"])
+def edit_product(product_id):
+
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    product = conn.execute(
+        """
+        SELECT *
+        FROM products
+        WHERE id = ? AND user_id = ?
+        """,
+        (product_id, user_id)
+    ).fetchone()
+
+    if product is None:
+        conn.close()
+        return "Product not found.", 404
+
+    if request.method == "POST":
+
+        try:
+            name = request.form["name"].strip()
+            sku = request.form["sku"].strip()
+            buying_price = float(request.form["buying_price"])
+            selling_price = float(request.form["selling_price"])
+            stock = int(request.form["stock"])
+            low_stock_level = int(request.form["low_stock_level"])
+
+            if not name:
+                raise ValueError("Product name is required.")
+
+            if buying_price < 0 or selling_price < 0:
+                raise ValueError("Prices cannot be negative.")
+
+            if stock < 0 or low_stock_level < 0:
+                raise ValueError("Stock values cannot be negative.")
+
+            conn.execute(
+                """
+                UPDATE products
+                SET name = ?,
+                    sku = ?,
+                    buying_price = ?,
+                    selling_price = ?,
+                    stock = ?,
+                    low_stock_level = ?
+                WHERE id = ? AND user_id = ?
+                """,
+                (
+                    name,
+                    sku,
+                    buying_price,
+                    selling_price,
+                    stock,
+                    low_stock_level,
+                    product_id,
+                    user_id
+                )
+            )
+
+            conn.commit()
+            conn.close()
+
+            return redirect(url_for("inventory"))
+
+        except (ValueError, KeyError) as error:
+            conn.close()
+
+            return (
+                f"Invalid product information: {error}. "
+                "Please go back and check your entries.",
+                400
+            )
+
+    conn.close()
+
+    return render_template(
+        "edit_product.html",
+        product=product
+            )
 # =========================
 # REPORTS
 # =========================
