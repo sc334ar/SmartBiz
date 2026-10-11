@@ -199,8 +199,12 @@
 
                     {% endif %}
 
-                </td>
-
+                                 <td>
+                    <a href="{{ url_for('edit_product', product_id=product['id']) }}">
+                        <button type="button">✏️ Edit</button>
+                    </a>
+                                 </td>
+            
             </tr>
 
             {% endfor %}
