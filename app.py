@@ -1360,6 +1360,75 @@ def leon_chat():
         )
 
     return {"reply": reply}
+    @app.route("/leon/money-leaks")
+def leon_money_leaks():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    # 1. Find possible duplicate expenses
+    duplicates = conn.execute("""
+        SELECT description, amount, date, COUNT(*) AS occurrences
+        FROM transactions
+        WHERE user_id = ?
+          AND transaction_type = 'expense'
+        GROUP BY description, amount, date
+        HAVING COUNT(*) > 1
+        ORDER BY occurrences DESC
+    """, (user_id,)).fetchall()
+
+    # 2. Find unusually large expenses
+    average_row = conn.execute("""
+        SELECT AVG(amount) AS average_amount
+        FROM transactions
+        WHERE user_id = ?
+          AND transaction_type = 'expense'
+    """, (user_id,)).fetchone()
+
+    average_expense = average_row["average_amount"] or 0
+
+    unusual_expenses = []
+
+    if average_expense > 0:
+        unusual_expenses = conn.execute("""
+            SELECT description, amount, date
+            FROM transactions
+            WHERE user_id = ?
+              AND transaction_type = 'expense'
+              AND amount >= ?
+            ORDER BY amount DESC
+        """, (user_id, average_expense * 2)).fetchall()
+
+    # 3. Find products being sold below buying cost
+    loss_products = conn.execute("""
+        SELECT name, buying_price, selling_price, stock
+        FROM products
+        WHERE user_id = ?
+          AND selling_price < buying_price
+        ORDER BY name
+    """, (user_id,)).fetchall()
+
+    # 4. Find products with low stock
+    low_stock = conn.execute("""
+        SELECT name, stock, low_stock_level
+        FROM products
+        WHERE user_id = ?
+          AND stock <= low_stock_level
+        ORDER BY stock ASC
+    """, (user_id,)).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "money_leaks.html",
+        duplicates=duplicates,
+        unusual_expenses=unusual_expenses,
+        loss_products=loss_products,
+        low_stock=low_stock,
+        average_expense=average_expense
+    )
 # =========================
 # START DATABASE
 # =========================
