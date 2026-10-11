@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#101827">
+
+    <title>Leon | SmartBiz Intelligence</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #101827;
+            color: white;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .hero {
+            padding: 28px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #173b55, #146b68);
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            margin-top: 0;
+            font-size: 32px;
+        }
+
+        .hero p {
+            line-height: 1.6;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #b6f3d0;
+            color: #123c2b;
+            padding: 7px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(
+                auto-fit, minmax(200px, 1fr)
+            );
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: #1d293b;
+            padding: 22px;
+            border-radius: 14px;
+            border: 1px solid #344256;
+            margin-bottom: 18px;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: #77e5ce;
+        }
+
+        .label {
+            color: #b9c5d6;
+            font-size: 14px;
+        }
+
+        .amount {
+            font-size: 25px;
+            font-weight: bold;
+            margin-top: 10px;
+            overflow-wrap: anywhere;
+        }
+
+        li {
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #91e9dc;
+            text-decoration: none;
+        }
+
+        .empty {
+            color: #c3cedc;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .hero {
+                padding: 20px;
+            }
+
+            .hero h1 {
+                font-size: 27px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <a class="back"
+       href="{{ url_for('dashboard') }}">
+        ← Back to SmartBiz
+    </a>
+
+    <section class="hero">
+
+        <span class="badge">
+            SMARTBIZ INTELLIGENCE
+        </span>
+
+        <h1>🤖 Meet Leon</h1>
+
+        <p>
+            Your business intelligence assistant.
+            I analyse your recorded business information
+            to help you understand your finances and inventory.
+        </p>
+
+        <p>
+            <strong>Leon says:</strong>
+            Let's understand how your business is performing.
+        </p>
+
+    </section>
+
+    <div class="grid">
+
+        <div class="card">
+            <div class="label">Recorded Sales</div>
+            <div class="amount">
+                KSh {{ "%.2f"|format(sales) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">Recorded Expenses</div>
+            <div class="amount">
+                KSh {{ "%.2f"|format(expenses) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">
+                Difference Between Sales and Expenses
+            </div>
+
+            <div class="amount">
+                KSh {{ "%.2f"|format(profit) }}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="label">Receipts Created</div>
+            <div class="amount">
+                {{ receipt_count }}
+            </div>
+        </div>
+
+    </div>
+
+    <section class="card">
+
+        <h2>🧠 Leon's Business Insights</h2>
+
+        <ul>
+            {% for insight in insights %}
+                <li>{{ insight }}</li>
+            {% endfor %}
+        </ul>
+
+        <p class="empty">
+            These observations use your recorded transactions.
+            They may not include costs or sales that have not
+            been entered into SmartBiz.
+        </p>
+
+    </section>
+
+    <section class="card">
+
+        <h2>📦 Inventory Watch</h2>
+
+        {% if low_stock %}
+
+            <p>
+                Leon recommends reviewing these products:
+            </p>
+
+            <ul>
+                {% for product in low_stock %}
+                    <li>
+                        <strong>{{ product["name"] }}</strong>
+                        — {{ product["stock"] }} remaining;
+                        low-stock threshold:
+                        {{ product["low_stock_level"] }}.
+                    </li>
+                {% endfor %}
+            </ul>
+
+        {% else %}
+
+            <p>
+                ✅ No products currently meet your low-stock
+                alert condition.
+            </p>
+
+        {% endif %}
+
+        <a class="back"
+           href="{{ url_for('inventory') }}">
+            Open Inventory →
+        </a>
+
+    </section>
+
+    <section class="card">
+
+        <h2>🏆 Best-Selling Products</h2>
+
+        {% if top_products %}
+
+            <ol>
+                {% for product in top_products %}
+                    <li>
+                        <strong>{{ product["item"] }}</strong>
+                        — {{ product["quantity_sold"] }}
+                        units sold;
+                        recorded sales:
+                        KSh
+                        {{ "%.2f"|format(product["sales_total"]) }}.
+                    </li>
+                {% endfor %}
+            </ol>
+
+        {% else %}
+
+            <p>
+                Leon will identify your best-selling products
+                after you create some receipts.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+    <section class="card">
+
+        <h2>🚀 What's Next?</h2>
+
+        <p>
+            Leon's next upgrades can include conversational
+            questions, unusual-transaction detection,
+            business performance comparisons, and sales forecasting.
+        </p>
+
+    </section>
+
+</div>
+
+</body>
+  </html>
