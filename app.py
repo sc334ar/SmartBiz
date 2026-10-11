@@ -1117,6 +1117,106 @@ def customers():
         "customers.html",
         customers=customers_list
     )
+    # =========================
+# LEON - SMARTBIZ INTELLIGENCE
+# =========================
+
+@app.route("/leon")
+def leon():
+
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    # Calculate sales
+    sales = conn.execute("""
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'income'
+    """, (user_id,)).fetchone()[0]
+
+    # Calculate expenses
+    expenses = conn.execute("""
+        SELECT COALESCE(SUM(amount), 0)
+        FROM transactions
+        WHERE user_id = ?
+        AND transaction_type = 'expense'
+    """, (user_id,)).fetchone()[0]
+
+    # Count receipts
+    receipt_count = conn.execute("""
+        SELECT COUNT(*)
+        FROM receipts
+        WHERE user_id = ?
+    """, (user_id,)).fetchone()[0]
+
+    # Find products needing restocking
+    low_stock = conn.execute("""
+        SELECT name, stock, low_stock_level
+        FROM products
+        WHERE user_id = ?
+        AND stock <= low_stock_level
+        ORDER BY stock ASC
+    """, (user_id,)).fetchall()
+
+    # Find the best-selling items by recorded quantity
+    top_products = conn.execute("""
+        SELECT item, SUM(quantity) AS quantity_sold,
+               SUM(total) AS sales_total
+        FROM receipts
+        WHERE user_id = ?
+        GROUP BY item
+        ORDER BY quantity_sold DESC
+        LIMIT 5
+    """, (user_id,)).fetchall()
+
+    conn.close()
+
+    profit = sales - expenses
+
+    # Leon's business observations
+    insights = []
+
+    if sales == 0:
+        insights.append(
+            "No sales have been recorded yet. "
+            "Create receipts to begin tracking sales."
+        )
+
+    if expenses > sales:
+        insights.append(
+            "Your recorded expenses exceed your recorded sales. "
+            "Review your transactions and business costs."
+        )
+    elif sales > 0:
+        insights.append(
+            "Your recorded sales currently exceed your recorded expenses."
+        )
+
+    if low_stock:
+        insights.append(
+            f"{len(low_stock)} product(s) have reached "
+            "their low-stock threshold. Review your inventory."
+        )
+    else:
+        insights.append(
+            "No products are currently at or below their "
+            "low-stock thresholds."
+        )
+
+    return render_template(
+        "leon.html",
+        sales=sales,
+        expenses=expenses,
+        profit=profit,
+        receipt_count=receipt_count,
+        low_stock=low_stock,
+        top_products=top_products,
+        insights=insights
+)
     
 # =========================
 # START DATABASE
