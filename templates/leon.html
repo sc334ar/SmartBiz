@@ -281,7 +281,186 @@
         </p>
 
     </section>
+<section class="card" id="leon-chat">
 
+    <h2>💬 Chat with Leon</h2>
+
+    <p>
+        Ask me about your sales, expenses, profit,
+        best-selling products, or stock.
+    </p>
+
+    <div id="chat-messages"
+         style="min-height:100px; margin-bottom:15px;">
+        <p>
+            <strong>Leon:</strong>
+            Hello! How can I help your business today?
+        </p>
+    </div>
+
+    <form id="chat-form">
+
+        <input
+            type="text"
+            id="question"
+            placeholder="Ask Leon a question..."
+            required
+            style="width:65%; padding:12px;"
+        >
+
+        <button type="submit">
+            Send
+        </button>
+
+        <button type="button" id="mic-button">
+            🎙️ Speak
+        </button>
+
+    </form>
+
+    <button type="button"
+            id="read-button"
+            style="margin-top:12px;">
+        🔊 Read Answer
+    </button>
+
+    <p id="voice-status"></p>
+
+</section>
+
+<script>
+const chatForm = document.getElementById("chat-form");
+const questionInput = document.getElementById("question");
+const messages = document.getElementById("chat-messages");
+const voiceStatus = document.getElementById("voice-status");
+
+let lastAnswer = "";
+
+function addMessage(sender, text) {
+    const p = document.createElement("p");
+    const strong = document.createElement("strong");
+
+    strong.textContent = sender + ": ";
+    p.appendChild(strong);
+    p.appendChild(document.createTextNode(text));
+
+    messages.appendChild(p);
+}
+
+chatForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const question = questionInput.value.trim();
+
+    if (!question) return;
+
+    addMessage("You", question);
+    questionInput.value = "";
+
+    try {
+        const response = await fetch(
+            "{{ url_for('leon_chat') }}",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded;charset=UTF-8"
+                },
+                body: new URLSearchParams({
+                    question: question
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.reply || "Unable to contact Leon."
+            );
+        }
+
+        lastAnswer = data.reply;
+        addMessage("Leon", lastAnswer);
+
+    } catch (error) {
+        addMessage(
+            "Leon",
+            error.message || "Sorry, something went wrong."
+        );
+    }
+});
+
+document.getElementById("mic-button")
+    .addEventListener("click", function() {
+
+        const SpeechRecognition =
+            window.SpeechRecognition ||
+            window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            voiceStatus.textContent =
+                "Speech recognition is not supported in this browser. " +
+                "Please type your question instead.";
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+
+        recognition.lang = "en-KE";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        voiceStatus.textContent = "Listening...";
+
+        recognition.onresult = function(event) {
+            questionInput.value =
+                event.results[0][0].transcript;
+
+            voiceStatus.textContent =
+                "Question recognised. Sending to Leon...";
+
+            chatForm.requestSubmit();
+        };
+
+        recognition.onerror = function() {
+            voiceStatus.textContent =
+                "I couldn't recognise your speech. " +
+                "Please try again or type your question.";
+        };
+
+        recognition.onend = function() {
+            if (voiceStatus.textContent === "Listening...") {
+                voiceStatus.textContent = "";
+            }
+        };
+
+        recognition.start();
+});
+
+document.getElementById("read-button")
+    .addEventListener("click", function() {
+
+        if (!lastAnswer) {
+            voiceStatus.textContent =
+                "Ask Leon a question first.";
+            return;
+        }
+
+        if (!("speechSynthesis" in window)) {
+            voiceStatus.textContent =
+                "Read-aloud is not supported in this browser.";
+            return;
+        }
+
+        window.speechSynthesis.cancel();
+
+        const speech = new SpeechSynthesisUtterance(lastAnswer);
+        speech.lang = "en-KE";
+
+        window.speechSynthesis.speak(speech);
+});
+    </script>
 </div>
 
 </body>
