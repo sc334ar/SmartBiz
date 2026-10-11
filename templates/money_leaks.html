@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leon Money Leak Detector - SmartBiz</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #101827;
+            color: #f1f5f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        h1 {
+            color: #38bdf8;
+            text-align: center;
+        }
+
+        .intro {
+            text-align: center;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            margin: 18px 0;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        h2 {
+            color: #7dd3fc;
+        }
+
+        .warning {
+            color: #fbbf24;
+        }
+
+        .safe {
+            color: #4ade80;
+        }
+
+        .item {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 18px;
+            margin: 8px 5px 0 0;
+            border-radius: 8px;
+            background: #0284c7;
+            color: white;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: #0369a1;
+        }
+
+        .empty {
+            color: #4ade80;
+        }
+
+        .note {
+            color: #cbd5e1;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>🧠 Leon's Money Leak Detector</h1>
+
+    <p class="intro">
+        Leon checks your recorded business information to help you
+        identify possible duplicate expenses, unusual spending,
+        products priced below cost, and low stock.
+    </p>
+
+    <div class="card">
+        <h2>💸 1. Possible Duplicate Expenses</h2>
+
+        {% if duplicates %}
+            {% for item in duplicates %}
+                <div class="item">
+                    <strong>Description:</strong>
+                    {{ item["description"] }}<br>
+
+                    <strong>Amount:</strong>
+                    KSh {{ "%.2f"|format(item["amount"]) }}<br>
+
+                    <strong>Date:</strong>
+                    {{ item["date"] }}<br>
+
+                    <strong>Times recorded:</strong>
+                    {{ item["occurrences"] }}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">
+                ✅ No possible duplicate expenses found.
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>📊 2. Unusually Large Expenses</h2>
+
+        <p>
+            Average recorded expense:
+            <strong>
+                KSh {{ "%.2f"|format(average_expense) }}
+            </strong>
+        </p>
+
+        {% if unusual_expenses %}
+            {% for item in unusual_expenses %}
+                <div class="item">
+                    <strong>Description:</strong>
+                    {{ item["description"] }}<br>
+
+                    <strong>Amount:</strong>
+                    <span class="warning">
+                        KSh {{ "%.2f"|format(item["amount"]) }}
+                    </span><br>
+
+                    <strong>Date:</strong>
+                    {{ item["date"] }}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">
+                ✅ No unusually large expenses detected.
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>📉 3. Products Priced Below Buying Cost</h2>
+
+        {% if loss_products %}
+            {% for item in loss_products %}
+                <div class="item">
+                    <strong>Product:</strong>
+                    {{ item["name"] }}<br>
+
+                    <strong>Buying price:</strong>
+                    KSh {{ "%.2f"|format(item["buying_price"]) }}<br>
+
+                    <strong>Selling price:</strong>
+                    KSh {{ "%.2f"|format(item["selling_price"]) }}<br>
+
+                    <strong>Difference per unit:</strong>
+                    KSh {{ "%.2f"|format(
+                        item["buying_price"] - item["selling_price"]
+                    ) }}<br>
+
+                    <span class="warning">
+                        ⚠️ Check whether this selling price is intentional.
+                    </span>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">
+                ✅ No products priced below buying cost found.
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>📦 4. Low Stock Alerts</h2>
+
+        {% if low_stock %}
+            {% for item in low_stock %}
+                <div class="item">
+                    <strong>Product:</strong>
+                    {{ item["name"] }}<br>
+
+                    <strong>Current stock:</strong>
+                    {{ item["stock"] }}<br>
+
+                    <strong>Low-stock threshold:</strong>
+                    {{ item["low_stock_level"] }}<br>
+
+                    <span class="warning">
+                        ⚠️ Consider checking whether this product needs restocking.
+                    </span>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="empty">
+                ✅ No low-stock alerts.
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>🤖 Leon's Advice</h2>
+
+        <p>
+            Review each warning before taking action.
+            Similar expenses may be legitimate, and a product
+            may intentionally be sold below its buying cost.
+        </p>
+
+        <p class="note">
+            These checks use the information recorded in SmartBiz.
+            They cannot detect transactions that were never entered
+            or prove that money has actually been lost.
+        </p>
+    </div>
+
+    <a class="button" href="{{ url_for('leon') }}">
+        ← Back to Leon
+    </a>
+
+    <a class="button" href="{{ url_for('dashboard') }}">
+        Dashboard
+    </a>
+
+</div>
+</body>
+  </html>
